@@ -1,721 +1,117 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0f0f23">
-<title>MazeGame</title>
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>迷宫 V6</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
-html,body{height:100%;overflow:hidden;background:#0f0f23;color:#e0e0ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif}
-#splash{position:fixed;inset:0;background:#0f0f23;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .8s}
-#splash h1{font-size:2.5rem;color:#6ee7ff;margin-bottom:.5rem;text-shadow:0 0 20px rgba(110,231,255,.3)}
-#splash p{color:#8892b0;font-size:.9rem}
-#app{height:100%;display:flex;flex-direction:column;opacity:0;transition:opacity .5s}
-#app.show{opacity:1}
-#topBar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#161b33;border-bottom:1px solid #2a2f4a}
-#topBar h1{font-size:1.1rem;color:#6ee7ff}
-#fsBtn{font-size:.75rem;padding:4px 10px;background:#2a2f4a;border:1px solid #4a5070;border-radius:6px;color:#e0e0ff;cursor:pointer;display:none}
-@media(pointer:coarse){#fsBtn{display:block}}
-#menu{flex:1;overflow-y:auto;padding:12px}
-#menu h2{font-size:1rem;color:#a5b4fc;margin:12px 0 8px;padding-bottom:4px;border-bottom:1px solid #2a2f4a}
-.modeBtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-bottom:8px}
-.modeBtns button{position:relative;padding:8px 4px;background:#1e2345;border:1px solid #3a4070;border-radius:8px;color:#e0e0ff;font-size:.8rem;cursor:pointer;transition:transform .1s,background .2s}
-.modeBtns button:active{transform:scale(.95);background:#2a3060}
-.modeBtns button.locked{opacity:.4;cursor:not-allowed}
-.modeBtns button.free::after{content:"\2726";position:absolute;top:2px;right:4px;color:#ffd700;font-size:.6rem}
-.modeBtns button.done{background:#1a3a2a;border-color:#2d5a3a}
-#ctrl{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
-#ctrl button{padding:6px 14px;background:#2a2f4a;border:1px solid #4a5070;border-radius:6px;color:#e0e0ff;font-size:.8rem;cursor:pointer}
-#ctrl button:active{background:#3a4060}
-#adminBox{display:none;margin:8px 0;padding:8px;background:#1a1f3a;border-radius:8px}
-#adminBox input{padding:6px 10px;background:#0f0f23;border:1px solid #3a4070;border-radius:6px;color:#e0e0ff;font-size:.8rem;margin-right:6px}
-#gameArea{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;position:relative}
-@media(min-width:768px)and(min-height:500px){#gameArea{flex-direction:row;gap:16px}}
-#mazeWrap{position:relative;flex-shrink:0}
-canvas{display:block;border-radius:8px;background:#0a0a1a;box-shadow:0 0 20px rgba(0,0,0,.5)}
-#dirPad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:4px;margin-top:8px;justify-content:center}
-@media(min-width:768px)and(min-height:500px){#dirPad{margin-top:0}}
-#dirPad .dp{width:56px;height:56px;background:#1e2345;border:1px solid #3a4070;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#a5b4fc;cursor:pointer;touch-action:none;position:relative;overflow:hidden}
-#dirPad .dp:active{background:#2a3060;color:#6ee7ff}
-#dirPad .dp::after{content:"";position:absolute;inset:0;background:rgba(110,231,255,.1);opacity:0;transition:opacity .1s}
-#dirPad .dp:active::after{opacity:1}
-#dirPad .dp[data-dir="up"]{grid-column:2;grid-row:1}
-#dirPad .dp[data-dir="left"]{grid-column:1;grid-row:2}
-#dirPad .dp[data-dir="right"]{grid-column:3;grid-row:2}
-#dirPad .dp[data-dir="down"]{grid-column:2;grid-row:3}
-#info{text-align:center;margin-top:6px;font-size:.8rem;color:#8892b0}
-#winOverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100}
-#winOverlay h2{color:#6ee7ff;font-size:1.8rem;margin-bottom:12px}
-#winOverlay button{margin:6px;padding:10px 24px;background:#1e2345;border:1px solid #3a4070;border-radius:10px;color:#e0e0ff;font-size:1rem;cursor:pointer}
-#winOverlay button:active{background:#2a3060}
-#helpBtn{position:fixed;top:8px;right:8px;z-index:1000;padding:6px 12px;background:#2a2f4a;border:1px solid #4a5070;border-radius:6px;color:#e0e0ff;font-size:.8rem;cursor:pointer}
-#helpOverlay{position:fixed;inset:0;background:rgba(15,15,35,.95);display:none;flex-direction:column;z-index:2000;overflow-y:auto}
-#helpOverlay .helpHeader{position:sticky;top:0;background:#0f0f23;padding:12px;border-bottom:1px solid #2a2f4a;display:flex;justify-content:space-between;align-items:center}
-#helpOverlay .helpHeader h2{color:#6ee7ff;font-size:1.2rem}
-#helpOverlay .helpClose{padding:6px 14px;background:#2a2f4a;border:1px solid #4a5070;border-radius:6px;color:#e0e0ff;cursor:pointer}
-#helpOverlay .helpContent{padding:16px;max-width:600px;margin:0 auto;line-height:1.8;color:#c0c8e0}
-#helpOverlay .helpContent h3{color:#a5b4fc;margin:20px 0 10px;font-size:1rem;border-bottom:1px solid #2a2f4a;padding-bottom:4px}
-#helpOverlay .helpContent p{margin:8px 0}
-#helpOverlay .helpContent .highlight{color:#ffd700}
-#helpOverlay .helpContent .note{color:#8892b0;font-size:.85rem}
-#helpOverlay .helpContent .device-box{background:#1a1f3a;border:1px solid #3a4070;border-radius:8px;padding:12px;margin:12px 0}
-#helpOverlay .helpContent .device-box h4{color:#6ee7ff;margin-bottom:8px}
-</style>
-</head>
-<body>
-<div id="splash"><h1>MazeGame</h1><p>加载中...</p></div>
-<button id="helpBtn">?</button>
-<div id="app">
-<div id="topBar"><h1 id="title">MazeGame</h1><button id="fsBtn">全屏</button></div>
-<div id="menu">
-<h2>经典模式</h2>
-<div id="normalBtns" class="modeBtns"></div>
-<h2>迷雾模式</h2>
-<div id="fogBtns" class="modeBtns"></div>
-<div id="ctrl">
-<button id="customBtn">自定义迷宫</button>
-<button id="adminBtn">管理员</button>
-<button id="resetBtn">重置进度</button>
-</div>
-<div id="adminBox">
-<input id="adminIn" type="password" placeholder="输入密码" maxlength="20">
-<button id="adminOk">确认</button>
-<button id="adminCancel">取消</button>
-</div>
-</div>
-<div id="gameArea" style="display:none">
-<div id="mazeWrap"><canvas id="cv"></canvas></div>
-<div id="dirPad">
-<div class="dp" data-dir="up">&#9650;</div>
-<div class="dp" data-dir="left">&#9664;</div>
-<div class="dp" data-dir="right">&#9654;</div>
-<div class="dp" data-dir="down">&#9660;</div>
-</div>
-<div id="info"></div>
-</div>
-</div>
-<div id="winOverlay">
-<h2>通关!</h2>
-<button id="nextBtn">下一关</button>
-<button id="menuBtn">返回菜单</button>
-</div>
-<div id="helpOverlay">
-<div class="helpHeader"><h2>游戏说明</h2><button class="helpClose" onclick="closeHelp()">关闭</button></div>
-<div class="helpContent">
-<h3>游戏简介</h3>
-<p>MazeGame 是一款迷宫解谜游戏，包含 <span class="highlight">经典模式 30 关</span> 和 <span class="highlight">迷雾模式 15 关</span>，难度逐步递增。</p>
-<h3>操作方式</h3>
-<p>键盘：方向键 / WASD 移动</p>
-<p>触屏：点击方向按钮或滑动屏幕</p>
-<h3>游戏元素</h3>
-<p>起点 <span style="color:#22c55e">绿色</span> | 终点 <span style="color:#ef4444">红色</span> | 玩家 <span style="color:#3b82f6">蓝色</span></p>
-<p>钥匙 <span style="color:#ffd700">金色</span> | 门 <span style="color:#c026ff">紫色</span></p>
-<h3>解锁规则</h3>
-<p>逐级解锁，完成上一关才能进入下一关。</p>
-<p class="note">免费体验关：3-1、9-1、F-3（无需解锁）</p>
-<div class="device-box"><h4>手机端</h4><p>3-1、9-1、F-3 为免费试玩关卡。</p><p>购买完整版后可解锁全部关卡。</p></div>
-<div class="device-box"><h4>手表端</h4><p>需先在手机端购买完整版，手表端自动同步解锁。</p></div>
-<h3>存档说明</h3><p>游戏进度自动保存到本地存储。</p><p>支持从 V5 版本自动迁移存档。</p>
-<h3>管理员模式</h3><p>输入管理员密码可一键解锁全部关卡。</p><p class="note">此功能仅用于测试。</p>
-</div>
-</div>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101217;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif}
+button{font:inherit;color:inherit;background:#353b47;border:1px solid #697282;border-radius:9px;touch-action:manipulation}.hidden{display:none!important}
+.screen{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+h1{margin:0 0 8px}.sub,.hint{color:#9aa1ad;text-align:center}.levels{width:min(900px,94vw);display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-height:50vh;overflow:auto}
+.level{min-height:44px}.level.done{background:#36533f}.level.lock{opacity:.45}.menuBtn{width:min(360px,84vw);margin-top:8px;padding:9px}.smallBtn{margin-top:7px;padding:7px 12px}
+#bar{height:42px;flex:0 0 42px;width:96%;display:flex;align-items:center;justify-content:space-between;gap:8px}#back{padding:6px 10px}
+#gameArea{width:96%;height:calc(100% - 42px);display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:0;padding:4px 0}
+#mazeStage{width:100%;height:100%;min-height:0;display:flex;align-items:center;justify-content:center}
+canvas{display:block;image-rendering:pixelated;max-width:100%;max-height:100%;touch-action:none}
+#controls{display:none;flex:0 0 auto;flex-direction:column;align-items:center;gap:4px;padding:2px}
+#controls div{display:flex;gap:4px}#controls button{width:48px;height:40px;font-size:18px}#padCenter{opacity:.35}
+@media(pointer:coarse){#controls{display:flex}}
+@media(max-width:700px){.levels{grid-template-columns:repeat(3,1fr)}#bar{height:38px;flex-basis:38px}#gameArea{height:calc(100% - 38px);gap:3px}#controls button{width:46px;height:36px}}
+@media(pointer:coarse) and (orientation:portrait){#gameArea{padding-bottom:2px}}
+.modal{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50}.box{width:min(380px,88vw);padding:18px;background:#20252e;border:1px solid #697282;border-radius:13px;text-align:center}.box input{width:190px;padding:9px;background:#292e37;color:#fff;border:1px solid #687282;border-radius:8px;text-align:center}
+</style></head><body>
+<section id="menu" class="screen"><h1>迷 宫</h1><div class="sub">V6 · 经典30关 + 迷雾15关</div><div id="levels" class="levels"></div>
+<button id="fogBtn" class="menuBtn">🌫️ 迷雾模式</button><button id="customBtn" class="menuBtn">自定义迷宫</button>
+<button id="adminBtn" class="smallBtn">管理员模式</button><button id="resetBtn" class="smallBtn">重置进度</button>
+<div class="hint">不计时、不计步数 · 7-1后少量钥匙和门</div></section>
+<section id="fogMenu" class="screen hidden"><h1>🌫️ 迷雾模式</h1><div id="fogLevels" class="levels"></div><button id="fogBack" class="menuBtn">← 返回</button></section>
+<section id="game" class="screen hidden"><div id="bar"><button id="back">← 菜单</button><b id="title"></b><span id="status"></span></div>
+<div id="gameArea"><div id="mazeStage"><canvas id="cv"></canvas></div><div id="controls"><button data-d="0,-1">▲</button><div><button data-d="-1,0">◀</button><button id="padCenter" disabled>●</button><button data-d="1,0">▶</button></div><button data-d="0,1">▼</button></div></div></section>
+<section id="complete" class="screen hidden"><h1>通关！</h1><p id="ct"></p><button id="next" class="menuBtn"></button><button id="cm" class="menuBtn">返回列表</button></section>
+<section id="custom" class="screen hidden"><h1>自定义迷宫</h1><div class="sub">7×7 ～ 99×99</div><p>宽 <input id="cw" type="number" value="25" min="7" max="99"> 高 <input id="ch" type="number" value="25" min="7" max="99"></p><button id="gen" class="menuBtn">生成</button><button id="cb" class="menuBtn">返回</button></section>
+<div id="modal" class="modal hidden"><div class="box"><h2 id="mt"></h2><p id="mx"></p><input id="mi" type="password" inputmode="numeric"><br><button id="mok" class="menuBtn">确定</button><button id="mno" class="menuBtn">取消</button></div></div>
 <script>
-(function(){
-const SAVE_KEY='maze_v6_save',ADMIN_KEY='maze_v6_admin';
-const FREE_LEVELS=new Set(['3-1','9-1','F-3']);
-let st={normal:[],fog:[],admin:false,cur:null,moving:false};
-let cv,ctx,CS,mz,pl,goal,keys,doors,vis,fogMode;
-let keyPressed={};
+"use strict";
+const SKEY="maze_v6_save",AKEY="maze_v6_admin";
+const st={normal:new Set(),fog:new Set(),admin:false,cfg:null,a:null,s:[1,1],e:[1,1],p:[1,1],keys:[],doors:[],moving:false};
+const normal=[],fog=[];
+for(let i=0;i<30;i++){let z=Math.min(15+Math.floor(i*2.1),80);if(!(z&1))z--;normal.push({type:"normal",index:i,id:`${Math.floor(i/3)+1}-${i%3+1}`,w:z,h:z,doors:i>=6,d:i+1})}
+for(let i=0;i<15;i++){let z=Math.min(17+Math.floor(i*2.5),55);if(!(z&1))z--;fog.push({type:"fog",index:i,id:`F-${i+1}`,w:z,h:z,d:i+1})}
+const $=x=>document.getElementById(x), screens=[$("menu"),$("fogMenu"),$("game"),$("complete"),$("custom")];
+function show(x){screens.forEach(s=>s.classList.add("hidden"));x.classList.remove("hidden")}
+function save(){localStorage.setItem(SKEY,JSON.stringify({v:6,normal:[...st.normal],fog:[...st.fog],admin:st.admin,t:Date.now()}))}
+function load(){try{let d=JSON.parse(localStorage.getItem(SKEY)||"{}");if(d.v===6){st.normal=new Set(d.normal||[]);st.fog=new Set(d.fog||[]);st.admin=d.admin||false}else{let old=JSON.parse(localStorage.getItem("maze_v5_progress")||"[]");st.normal=new Set(old)}}catch(e){}}
+function all(){return st.admin||st.normal.size===30}
+function unlocked(arr,i,set){return st.admin||i===0||set.has(i-1)}
+function render(arr,box,set){$(box).innerHTML="";arr.forEach((v,i)=>{let b=document.createElement("button");let u=unlocked(arr,i,set),done=set.has(i);b.className="level "+(done?"done ":"")+(u?"":"lock");b.disabled=!u;b.textContent=done?v.id+" ✓":u?v.id:v.id+" 🔒";b.onclick=()=>start(v);$(box).appendChild(b)})}
 
-function loadSave(){try{let d=localStorage.getItem(SAVE_KEY);if(d){let o=JSON.parse(d);if(o&&o.v===6){st.normal=o.normal||[];st.fog=o.fog||[];st.admin=o.admin||false;return}}let oldP=localStorage.getItem('maze_v5_progress'),oldA=localStorage.getItem('maze_v5_admin');if(oldP){try{let o=JSON.parse(oldP);st.normal=o.normal||[];st.fog=o.fog||[]}catch(e){}}if(oldA==='1')st.admin=true;}catch(e){}}
-function saveGame(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:6,normal:st.normal,fog:st.fog,admin:st.admin,t:Date.now()}));}catch(e){}}
-function isUnlocked(id){if(st.admin)return true;if(FREE_LEVELS.has(id))return true;let m=id.startsWith('F-')?'fog':'normal',n=parseLevel(id);if(!n)return false;let prev=getPrevId(id);if(!prev)return true;return st[m].includes(prev);}
-function parseLevel(id){if(id.startsWith('F-')){let n=parseInt(id.slice(2));return n>0?{m:'fog',idx:n-1}:null;}let m=id.match(/^(\d+)-(\d+)$/);if(!m)return null;return{m:'normal',idx:(parseInt(m[1])-1)*3+(parseInt(m[2])-1)};}
-function getPrevId(id){let n=parseLevel(id);if(!n||n.idx===0)return null;if(n.m==='fog')return'F-'+n.idx;if(n.idx%3===0)return(Math.floor(n.idx/3))+'-3';return(Math.floor(n.idx/3)+1)+'-'+(n.idx%3);}
-function isDone(id){let n=parseLevel(id);if(!n)return false;return st[n.m].includes(id);}
+function maze(w,h){
+ if(!(w&1))w--;if(!(h&1))h--;let a=Array.from({length:h},()=>Array(w).fill(0)),q=[[1,1]];a[1][1]=1;
+ while(q.length){let [x,y]=q[q.length-1],ds=[[2,0],[-2,0],[0,2],[0,-2]].sort(()=>Math.random()-.5),ok=0;
+  for(let [dx,dy] of ds){let X=x+dx,Y=y+dy;if(X>0&&X<w-1&&Y>0&&Y<h-1&&!a[Y][X]){a[y+dy/2][x+dx/2]=1;a[Y][X]=1;q.push([X,Y]);ok=1;break}}if(!ok)q.pop()}
+ let leaves=[];for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(a[y][x]){let n=(a[y-1][x]?1:0)+(a[y+1][x]?1:0)+(a[y][x-1]?1:0)+(a[y][x+1]?1:0);if(n===1)leaves.push([x,y])}
+ let s=[1,1],e=[w-2,h-2],best=-1;for(let A of leaves)for(let B of leaves){let d=Math.abs(A[0]-B[0])+Math.abs(A[1]-B[1]);if(d>best){best=d;s=A;e=B}}return[a,s,e]
+}
+function path(a,s,e){let q=[s],pr=new Map(),K=(x,y)=>x+","+y;pr.set(K(...s),null);while(q.length){let [x,y]=q.shift();if(x===e[0]&&y===e[1]){let o=[],c=[x,y];while(c){o.push(c);c=pr.get(K(...c))}return o.reverse()}for(let [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){let X=x+dx,Y=y+dy,k=K(X,Y);if(Y>=0&&Y<a.length&&X>=0&&X<a[0].length&&a[Y][X]&&!pr.has(k)){pr.set(k,[x,y]);q.push([X,Y])}}}return[]}
+function valid(a,s,e){let h=a.length,w=a[0].length;for(let y=0;y<h-1;y++)for(let x=0;x<w-1;x++)if(a[y][x]&&a[y+1][x]&&a[y][x+1]&&a[y+1][x+1])return false;return path(a,s,e).length>0}
+function gen(c){for(let i=0;i<40;i++){let m=maze(c.w,c.h);if(valid(...m))return m}return maze(c.w,c.h)}
 
-function rand(n){return Math.floor(Math.random()*n);}
-function shuffle(a){for(let i=a.length-1;i>0;i--){let j=rand(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
-
-// ===== 迷宫生成：保证1格宽通道，起点到终点唯一基础路线 =====
-function generateMaze(w,h){
-  if(w%2===0)w++;if(h%2===0)h++;
-  let g=Array(h).fill().map(()=>Array(w).fill(1));
-  // 递归回溯生成完美迷宫（保证1格宽，唯一路径）
-  function carve(x,y){
-    g[y][x]=0;
-    let d=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);
-    for(let [dx,dy]of d){
-      let nx=x+dx,ny=y+dy;
-      if(nx>0&&nx<w-1&&ny>0&&ny<h-1&&g[ny][nx]===1){
-        g[y+dy/2][x+dx/2]=0;
-        carve(nx,ny);
-      }
-    }
-  }
-  carve(1,1);
-  // 找最远两点作为起终点
-  let cells=[];
-  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(g[y][x]===0)cells.push([x,y]);
-  let best=0,bi=0,bj=0;
-  for(let i=0;i<cells.length;i++){
-    for(let j=i+1;j<cells.length;j++){
-      let d=Math.abs(cells[i][0]-cells[j][0])+Math.abs(cells[i][1]-cells[j][1]);
-      if(d>best){best=d;bi=i;bj=j;}
-    }
-  }
-  return{g,w,h,sx:cells[bi][0],sy:cells[bi][1],ex:cells[bj][0],ey:cells[bj][1]};
+function setupDoors(c){
+ st.keys=[];st.doors=[];
+ if(c.type!=="normal"||!c.doors)return;
+ let p=path(st.a,st.s,st.e);if(!p||p.length<15)return;
+ let n=c.d>=23?2:1;
+ n=Math.min(n,4);
+ let used=new Set();
+ for(let i=0;i<n;i++){
+  let kIdx=Math.floor(p.length*(.2+i*.18)),dIdx=Math.min(p.length-3,kIdx+Math.max(7,Math.floor(p.length*.12)));
+  if(dIdx<=kIdx+2)continue;
+  while(used.has(kIdx)&&kIdx<dIdx-3)kIdx++;
+  while(used.has(dIdx)&&dIdx>kIdx+3)dIdx--;
+  if(used.has(kIdx)||used.has(dIdx))continue;
+  used.add(kIdx);used.add(dIdx);
+  st.keys.push({x:p[kIdx][0],y:p[kIdx][1],got:false,i});
+  st.doors.push({x:p[dIdx][0],y:p[dIdx][1],open:false,i});
+ }
 }
 
-// BFS找路径
-function findPath(g,w,h,sx,sy,ex,ey){
-  let q=[[sx,sy]],pr=new Map(),K=(x,y)=>x+','+y;
-  pr.set(K(sx,sy),null);
-  while(q.length){
-    let[x,y]=q.shift();
-    if(x===ex&&y===ey){
-      let p=[],c=[x,y];
-      while(c){p.push(c);c=pr.get(K(c[0],c[1]));}
-      return p.reverse();
-    }
-    for(let[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
-      let nx=x+dx,ny=y+dy;
-      if(nx>=0&&nx<w&&ny>=0&&ny<h&&g[ny][nx]===0&&!pr.has(K(nx,ny))){
-        pr.set(K(nx,ny),[x,y]);
-        q.push([nx,ny]);
-      }
-    }
-  }
-  return null;
-}
-
-// 在路径上添加蛇形/U型/回折结构（让错误路线更像真的）
-function addComplexity(g,w,h,path,level){
-  if(level<10)return;
-  let complexity=Math.min(0.3,0.05+(level-10)*0.01);
-  for(let i=2;i<path.length-2;i++){
-    if(Math.random()>complexity)continue;
-    let[x,y]=path[i];
-    // 尝试添加U型回折
-    let dirs=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);
-    for(let[dx,dy]of dirs){
-      let nx=x+dx,ny=y+dy;
-      if(nx>1&&nx<w-2&&ny>1&&ny<h-2&&g[ny][nx]===1){
-        // 检查不会形成2x2开放区
-        let wx=x+dx/2,wy=y+dy/2;
-        if(g[wy][wx]===1){
-          g[wy][wx]=0;g[ny][nx]=0;
-          // 再延伸一段形成回折
-          let d2=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);
-          for(let[d2x,d2y]of d2){
-            let nx2=nx+d2x,ny2=ny+d2y;
-            if(nx2>1&&nx2<w-2&&ny2>1&&ny2<h-2&&g[ny2][nx2]===1){
-              let wx2=nx+d2x/2,wy2=ny+d2y/2;
-              if(g[wy2][wx2]===1){
-                g[wy2][wx2]=0;g[ny2][nx2]=0;
-                break;
-              }
-            }
-          }
-          break;
-        }
-      }
-    }
-  }
-}
-
-// 延长死胡同（让错误岔路更长更逼真）
-function extendDeadEnds(g,w,h){
-  let changed=true,iter=0;
-  while(changed&&iter<30){
-    changed=false;iter++;
-    for(let y=1;y<h-1;y++){
-      for(let x=1;x<w-1;x++){
-        if(g[y][x]!==0)continue;
-        let n=0;
-        for(let[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]])
-          if(g[y+dy][x+dx]===0)n++;
-        if(n!==1)continue;
-        // 死胡同，尝试延长2-6格
-        if(Math.random()>0.6)continue;
-        let cx=x,cy=y,len=0;
-        while(len<6){
-          let dirs=shuffle([[0,2],[0,-2],[2,0],[-2,0]]);
-          let extended=false;
-          for(let[dx,dy]of dirs){
-            let nx=cx+dx,ny=cy+dy;
-            if(nx>1&&nx<w-2&&ny>1&&ny<h-2&&g[ny][nx]===1){
-              let wx=cx+dx/2,wy=cy+dy/2;
-              if(g[wy][wx]===1){
-                // 检查不会形成2x2开放区
-                let ok=true;
-                for(let iy=Math.max(0,ny-1);iy<=Math.min(h-1,ny+1)&&ok;iy++){
-                  for(let ix=Math.max(0,nx-1);ix<=Math.min(w-1,nx+1)&&ok;ix++){
-                    if(g[iy][ix]===0&&!(ix===cx&&iy===cy))ok=false;
-                  }
-                }
-                if(ok){
-                  g[wy][wx]=0;g[ny][nx]=0;
-                  cx=nx;cy=ny;len++;
-                  extended=true;
-                  break;
-                }
-              }
-            }
-          }
-          if(!extended)break;
-        }
-        if(len>0)changed=true;
-      }
-    }
-  }
-}
-
-// 验证迷宫：1格宽通道，无2x2开放区，墙体连通
-function validateMaze(g,w,h){
-  // 检查2x2开放区
-  for(let y=0;y<h-1;y++){
-    for(let x=0;x<w-1;x++){
-      if(g[y][x]===0&&g[y][x+1]===0&&g[y+1][x]===0&&g[y+1][x+1]===0)return false;
-    }
-  }
-  // 检查起点终点可达
-  let path=findPath(g,w,h,1,1,w-2,h-2);
-  if(!path)return false;
-  return path;
-}
-
-// 生成完整迷宫（带复杂度）
-function buildMaze(w,h,level){
-  let g=generateMaze(w,h);
-  let path=validateMaze(g.g,g.w,g.h);
-  if(!path)return null;
-  addComplexity(g.g,g.w,g.h,path,level);
-  extendDeadEnds(g.g,g.w,g.h);
-  // 重新找起终点（复杂度添加后可能变化）
-  let cells=[];
-  for(let y=1;y<g.h-1;y++)for(let x=1;x<g.w-1;x++)if(g.g[y][x]===0)cells.push([x,y]);
-  let best=0,bi=0,bj=0;
-  for(let i=0;i<cells.length;i++){
-    for(let j=i+1;j<cells.length;j++){
-      let d=Math.abs(cells[i][0]-cells[j][0])+Math.abs(cells[i][1]-cells[j][1]);
-      if(d>best){best=d;bi=i;bj=j;}
-    }
-  }
-  g.sx=cells[bi][0];g.sy=cells[bi][1];
-  g.ex=cells[bj][0];g.ey=cells[bj][1];
-  return g;
-}
-
-// ===== 钥匙和门系统 =====
-function setupKeysAndDoors(m,level){
-  keys=[];doors=[];
-  if(level<6)return; // 前6关没有钥匙门
-  
-  let path=findPath(m.g,m.w,m.h,m.sx,m.sy,m.ex,m.ey);
-  if(!path||path.length<15)return;
-  
-  let nDoors=1;
-  if(level>=12)nDoors=2;
-  if(level>=18)nDoors=3;
-  if(level>=24)nDoors=4;
-  nDoors=Math.min(nDoors,4);
-  
-  let usedPathIndices=new Set();
-  
-  for(let i=0;i<nDoors;i++){
-    // 门放在必经路径上（靠后位置）
-    let doorIdxMin=Math.floor(path.length*(0.4+i*0.15));
-    let doorIdxMax=Math.min(path.length-3,doorIdxMin+Math.floor(path.length*0.1));
-    let doorIdx=-1;
-    for(let tryIdx=doorIdxMin;tryIdx<=doorIdxMax;tryIdx++){
-      if(!usedPathIndices.has(tryIdx)){
-        doorIdx=tryIdx;break;
-      }
-    }
-    if(doorIdx===-1)continue;
-    usedPathIndices.add(doorIdx);
-    
-    let dPos=path[doorIdx];
-    let doorId='door_'+i;
-    doors.push({x:dPos[0],y:dPos[1],id:doorId,open:false});
-    
-    // 钥匙放在远离门的死胡同（错误路线上）
-    let keyPos=findKeyPosition(m.g,m.w,m.h,dPos,path,usedPathIndices);
-    if(keyPos){
-      keys.push({x:keyPos[0],y:keyPos[1],id:doorId,taken:false});
-    }
-  }
-}
-
-// 找钥匙位置：远离门，在死胡同或错误路线上
-function findKeyPosition(g,w,h,doorPos,path,usedIndices){
-  let pathSet=new Set(path.map(p=>p[0]+','+p[1]));
-  let candidates=[];
-  
-  for(let y=1;y<h-1;y++){
-    for(let x=1;x<w-1;x++){
-      if(g[y][x]!==0)continue;
-      if(x===doorPos[0]&&y===doorPos[1])continue;
-      if(pathSet.has(x+','+y))continue; // 不在主路径上
-      
-      // 计算与门的距离
-      let dist=Math.abs(x-doorPos[0])+Math.abs(y-doorPos[1]);
-      if(dist<8)continue; // 至少远离8格
-      
-      // 检查是否是死胡同（只有一个出口）
-      let exits=0;
-      for(let[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
-        if(g[y+dy][x+dx]===0)exits++;
-      }
-      if(exits===1)candidates.push([x,y,dist]);
-    }
-  }
-  
-  if(candidates.length===0)return null;
-  // 优先选距离适中的（不太近也不太远）
-  candidates.sort((a,b)=>Math.abs(a[2]-15)-Math.abs(b[2]-15));
-  return candidates[0];
-}
-
-// ===== 关卡系统 =====
-function startLevel(id){
-  let n=parseLevel(id);
-  if(!n)return;
-  fogMode=n.m==='fog';
-  let size;
-  if(fogMode){
-    size=17+n.idx*Math.floor((55-17)/14);
-  }else{
-    size=15+n.idx*Math.floor((80-15)/29); // 最大80
-  }
-  size=size%2===0?size+1:size;
-  let m=buildMaze(size,size,n.idx);
-  if(!m)return;
-  mz=m;
-  pl={x:m.sx,y:m.sy};
-  goal={x:m.ex,y:m.ey};
-  setupKeysAndDoors(m,n.idx);
-  vis=Array(m.h).fill().map(()=>Array(m.w).fill(false));
-  st.cur=id;
-  updateInfo();
-  resizeCanvas();
-  draw();
-  history.pushState({game:true},'');
-  history.pushState({game:true},'');
-}
-
-function isVisible(x,y){
-  if(!fogMode)return true;
-  return Math.abs(x-pl.x)+Math.abs(y-pl.y)<=4;
-}
-
-function draw(){
-  if(!cv)return;
-  ctx.fillStyle='#0a0a1a';
-  ctx.fillRect(0,0,cv.width,cv.height);
-  if(!mz)return;
-  let cs=CS;
-  for(let y=0;y<mz.h;y++){
-    for(let x=0;x<mz.w;x++){
-      if(fogMode&&!vis[y][x])continue;
-      let px=x*cs,py=y*cs;
-      if(mz.g[y][x]===1){
-        ctx.fillStyle='#1a1f3a';
-        ctx.fillRect(px,py,cs,cs);
-      }else{
-        ctx.fillStyle='#0f1525';
-        ctx.fillRect(px,py,cs,cs);
-        if(x===mz.sx&&y===mz.sy){
-          ctx.fillStyle='#22c55e';
-          ctx.fillRect(px+2,py+2,cs-4,cs-4);
-        }
-        if(x===goal.x&&y===goal.y){
-          ctx.fillStyle='#ef4444';
-          ctx.fillRect(px+2,py+2,cs-4,cs-4);
-        }
-      }
-    }
-  }
-  // 钥匙
-  for(let k of keys){
-    if(!k.taken&&(!fogMode||vis[k.y][k.x])){
-      let px=k.x*cs,py=k.y*cs;
-      ctx.fillStyle='#ffd700';
-      ctx.beginPath();
-      ctx.arc(px+cs/2,py+cs/2,cs/3,0,Math.PI*2);
-      ctx.fill();
-    }
-  }
-  // 门
-  for(let d of doors){
-    if(!d.open&&(!fogMode||vis[d.y][d.x])){
-      let px=d.x*cs,py=d.y*cs;
-      ctx.fillStyle='#c026ff';
-      ctx.fillRect(px+1,py+1,cs-2,cs-2);
-    }
-  }
-  // 玩家
-  let px=pl.x*cs,py=pl.y*cs;
-  ctx.fillStyle='#3b82f6';
-  ctx.beginPath();
-  ctx.arc(px+cs/2,py+cs/2,cs/2.5,0,Math.PI*2);
-  ctx.fill();
-  // 迷雾
-  if(fogMode){
-    for(let y=0;y<mz.h;y++){
-      for(let x=0;x<mz.w;x++){
-        let d=Math.abs(x-pl.x)+Math.abs(y-pl.y);
-        if(d>4){
-          ctx.fillStyle='rgba(0,0,0,'+Math.min(1,(d-4)/3)+')';
-          ctx.fillRect(x*cs,y*cs,cs,cs);
-        }
-      }
-    }
-  }
-}
-
-function updateVis(){
-  if(!fogMode||!mz)return;
-  for(let y=0;y<mz.h;y++){
-    for(let x=0;x<mz.w;x++){
-      if(Math.abs(x-pl.x)+Math.abs(y-pl.y)<=4)vis[y][x]=true;
-    }
-  }
-}
+function start(c){st.cfg=c;let m=gen(c);st.a=m[0];st.s=m[1];st.e=m[2];st.p=[...st.s];setupDoors(c);$("title").textContent=c.type==="fog"?"🌫️ "+c.id:c.type==="custom"?"自定义迷宫":"关卡 "+c.id;upd();show($("game"));resize();draw()}
+const cv=$("cv"),ctx=cv.getContext("2d");
+function resize(){if(!st.a)return;let stage=$("mazeStage"),w=st.a[0].length,h=st.a.length,c=Math.max(2,Math.floor(Math.min((stage.clientWidth-2)/w,(stage.clientHeight-2)/h)));cv.width=w*c;cv.height=h*c;cv.dataset.c=c}
+function vis(x,y){return st.cfg.type!=="fog"||Math.abs(x-st.p[0])+Math.abs(y-st.p[1])<=4}
+function draw(){let c=+cv.dataset.c||4;ctx.fillStyle="#080a0f";ctx.fillRect(0,0,cv.width,cv.height);for(let y=0;y<st.a.length;y++)for(let x=0;x<st.a[0].length;x++){if(!vis(x,y))continue;ctx.fillStyle=st.a[y][x]?"#e7eaf0":"#2c313a";ctx.fillRect(x*c,y*c,c,c)}
+ function box(x,y,color){ctx.fillStyle="#111";ctx.fillRect(x*c+.08*c,y*c+.08*c,.84*c,.84*c);ctx.fillStyle=color;ctx.fillRect(x*c+.18*c,y*c+.18*c,.64*c,.64*c)}
+ if(vis(...st.s))box(...st.s,"#21e66b");if(vis(...st.e))box(...st.e,"#ff334c");
+ for(let k of st.keys)if(!k.got&&vis(k.x,k.y))box(k.x,k.y,"#ffd21a");for(let d of st.doors)if(!d.open&&vis(d.x,d.y))box(d.x,d.y,"#b126ff");
+ ctx.fillStyle="#2585ff";ctx.beginPath();ctx.arc(st.p[0]*c+c/2,st.p[1]*c+c/2,Math.max(3,c*.31),0,7);ctx.fill()}
+function upd(){if(st.keys.length)$("status").textContent="🔑 "+st.keys.filter(k=>k.got).length+"/"+st.keys.length;else if(st.cfg&&st.cfg.type==="fog")$("status").textContent="🌫️ 记路线";else $("status").textContent=""}
 
 function move(dx,dy){
-  if(st.moving||!mz)return;
-  let nx=pl.x+dx,ny=pl.y+dy;
-  if(nx<0||nx>=mz.w||ny<0||ny>=mz.h)return;
-  if(mz.g[ny][nx]===1)return;
-  // 检查门
-  for(let d of doors){
-    if(!d.open&&d.x===nx&&d.y===ny){
-      let hasKey=keys.some(k=>k.id===d.id&&!k.taken);
-      if(!hasKey){updateInfo('需要钥匙!');return;}
-      d.open=true;
-      updateInfo('门已打开');
-      break;
-    }
-  }
-  pl.x=nx;pl.y=ny;
-  st.moving=true;
-  setTimeout(()=>st.moving=false,150);
-  updateVis();
-  draw();
-  // 捡钥匙
-  for(let k of keys){
-    if(!k.taken&&k.x===pl.x&&k.y===pl.y){
-      k.taken=true;
-      updateInfo('获得钥匙!');
-    }
-  }
-  // 通关
-  if(pl.x===goal.x&&pl.y===goal.y){
-    let n=parseLevel(st.cur);
-    if(n){st[n.m].push(st.cur);saveGame();}
-    showWin();
-  }
-  updateInfo();
+ if(st.moving||!st.a)return;
+ let x=st.p[0]+dx,y=st.p[1]+dy;
+ if(y<0||x<0||y>=st.a.length||x>=st.a[0].length||!st.a[y][x])return;
+ let d=st.doors.find(d=>d.x===x&&d.y===y&&!d.open);
+ if(d){let k=st.keys.find(k=>k.i===d.i&&!k.got);if(!k)return;d.open=true}
+ let k=st.keys.find(k=>k.x===x&&k.y===y&&!k.got);if(k)k.got=true;
+ st.p=[x,y];st.moving=true;setTimeout(()=>st.moving=false,120);upd();draw();
+ if(x===st.e[0]&&y===st.e[1])finish()
 }
 
-function updateInfo(msg){
-  let el=document.getElementById('info');
-  let base=st.cur||'';
-  let extra=msg||'';
-  el.textContent=base+(extra?' | '+extra:'');
+document.addEventListener("keydown",e=>{if(e.repeat||st.moving||["input","textarea"].includes((e.target.tagName||"").toLowerCase()))return;let d=null,k=e.key.toLowerCase();if(k==="w"||e.key==="ArrowUp")d=[0,-1];if(k==="s"||e.key==="ArrowDown")d=[0,1];if(k==="a"||e.key==="ArrowLeft")d=[-1,0];if(k==="d"||e.key==="ArrowRight")d=[1,0];if(d){e.preventDefault();move(...d)}})
+document.querySelectorAll("#controls [data-d]").forEach(b=>b.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();move(...b.dataset.d.split(",").map(Number))}));
+let ts=null;cv.addEventListener("touchstart",e=>{let t=e.changedTouches[0];ts=[t.clientX,t.clientY]},{passive:true});cv.addEventListener("touchend",e=>{if(!ts)return;let t=e.changedTouches[0],dx=t.clientX-ts[0],dy=t.clientY-ts[1];ts=null;if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;Math.abs(dx)>Math.abs(dy)?move(dx>0?1:-1,0):move(0,dy>0?1:-1)},{passive:true})
+
+function finish(){
+ let c=st.cfg;
+ if(c.type==="normal"){st.normal.add(c.index);save();$("ct").textContent="完成 "+c.id+"！";$("next").textContent=c.index<29?"进入下一关":"进入迷雾关卡列表";$("next").onclick=()=>c.index<29?start(normal[c.index+1]):(render(fog,"fogLevels",st.fog),show($("fogMenu")))}
+ else if(c.type==="fog"){st.fog.add(c.index);$("ct").textContent="完成 "+c.id+"！";$("next").textContent="返回迷雾关卡列表";$("next").onclick=()=>{render(fog,"fogLevels",st.fog);show($("fogMenu"))}}
+ else{$("ct").textContent="自定义迷宫通关！";$("next").textContent="再来一张";$("next").onclick=startCustom}
+ show($("complete"))
 }
-
-function showWin(){document.getElementById('winOverlay').style.display='flex';}
-function hideWin(){document.getElementById('winOverlay').style.display='none';}
-
-function resizeCanvas(){
-  cv=document.getElementById('cv');
-  ctx=cv.getContext('2d');
-  if(!mz)return;
-  let maxW=Math.min(window.innerWidth-16,600);
-  let maxH=Math.min(window.innerHeight-200,600);
-  if(window.innerWidth>=768&&window.innerHeight>=500){
-    maxW=Math.min(window.innerWidth*0.5,500);
-    maxH=Math.min(window.innerHeight-100,500);
-  }
-  CS=Math.floor(Math.min(maxW/mz.w,maxH/mz.h));
-  if(CS<4)CS=4;
-  cv.width=CS*mz.w;
-  cv.height=CS*mz.h;
-  cv.style.width=cv.width+'px';
-  cv.style.height=cv.height+'px';
-  draw();
-}
-
-function refresh(){resizeCanvas();}
-
-function buildMenu(){
-  let nb=document.getElementById('normalBtns'),fb=document.getElementById('fogBtns');
-  nb.innerHTML='';fb.innerHTML='';
-  for(let i=0;i<30;i++){
-    let id=''+(Math.floor(i/3)+1)+'-'+(i%3+1);
-    let b=document.createElement('button');
-    b.textContent=st.admin?(id+' ✓'):id;
-    b.className=isDone(id)?'done':(!isUnlocked(id)?'locked':'');
-    if(FREE_LEVELS.has(id))b.classList.add('free');
-    if(!isUnlocked(id))b.textContent=id+' 🔒';
-    b.disabled=!isUnlocked(id);
-    b.onclick=()=>{if(isUnlocked(id))startLevel(id);};
-    nb.appendChild(b);
-  }
-  for(let i=0;i<15;i++){
-    let id='F-'+(i+1);
-    let b=document.createElement('button');
-    b.textContent=st.admin?(id+' ✓'):id;
-    b.className=isDone(id)?'done':(!isUnlocked(id)?'locked':'');
-    if(FREE_LEVELS.has(id))b.classList.add('free');
-    if(!isUnlocked(id))b.textContent=id+' 🔒';
-    b.disabled=!isUnlocked(id);
-    b.onclick=()=>{if(isUnlocked(id))startLevel(id);};
-    fb.appendChild(b);
-  }
-}
-
-function showMenu(){
-  document.getElementById('menu').style.display='block';
-  document.getElementById('gameArea').style.display='none';
-  document.getElementById('title').textContent='MazeGame';
-  buildMenu();
-}
-function showGame(){
-  document.getElementById('menu').style.display='none';
-  document.getElementById('gameArea').style.display='flex';
-  document.getElementById('title').textContent='MazeGame - '+st.cur;
-}
-
-function tryFullscreen(){
-  let el=document.documentElement;
-  if(el.requestFullscreen)el.requestFullscreen();
-  else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
-}
-
-function openHelp(){document.getElementById('helpOverlay').style.display='flex';}
-function closeHelp(){document.getElementById('helpOverlay').style.display='none';}
-
-function init(){
-  loadSave();
-  buildMenu();
-  document.getElementById('splash').style.opacity='0';
-  setTimeout(()=>{
-    document.getElementById('splash').style.display='none';
-    document.getElementById('app').classList.add('show');
-    showMenu();
-  },800);
-  document.getElementById('fsBtn').onclick=tryFullscreen;
-  document.getElementById('helpBtn').onclick=openHelp;
-  document.getElementById('customBtn').onclick=()=>{
-    let s=prompt('输入迷宫尺寸(奇数,5-99):','21');
-    if(!s)return;
-    let n=parseInt(s);
-    if(isNaN(n)||n<5||n>99){alert('无效尺寸');return;}
-    if(n%2===0)n++;
-    mz=buildMaze(n,n,10);
-    if(!mz){alert('生成失败');return;}
-    pl={x:mz.sx,y:mz.sy};goal={x:mz.ex,y:mz.ey};keys=[];doors=[];
-    vis=Array(mz.h).fill().map(()=>Array(mz.w).fill(false));
-    st.cur='自定义';fogMode=false;showGame();resizeCanvas();draw();
-  };
-  document.getElementById('adminBtn').onclick=()=>{
-    let box=document.getElementById('adminBox');
-    box.style.display=box.style.display==='block'?'none':'block';
-  };
-  document.getElementById('adminOk').onclick=()=>{
-    let v=document.getElementById('adminIn').value;
-    if(v==='235689850525'){
-      st.admin=true;
-      st.normal=[];st.fog=[];
-      for(let i=0;i<30;i++)st.normal.push(''+(Math.floor(i/3)+1)+'-'+(i%3+1));
-      for(let i=0;i<15;i++)st.fog.push('F-'+(i+1));
-      saveGame();
-      alert('管理员模式已开启');
-      document.getElementById('adminBox').style.display='none';
-      buildMenu();
-    }else{alert('密码错误');}
-  };
-  document.getElementById('adminCancel').onclick=()=>{
-    document.getElementById('adminBox').style.display='none';
-  };
-  document.getElementById('resetBtn').onclick=()=>{
-    let v=prompt('输入 RESET 确认重置:');
-    if(v==='RESET'){
-      st.normal=[];st.fog=[];st.admin=false;
-      localStorage.removeItem(SAVE_KEY);
-      localStorage.removeItem(ADMIN_KEY);
-      saveGame();
-      buildMenu();
-      alert('进度已重置');
-    }
-  };
-  document.getElementById('nextBtn').onclick=()=>{
-    hideWin();
-    let n=parseLevel(st.cur);
-    if(!n)return;
-    let next;
-    if(n.m==='fog'){if(n.idx<14)next='F-'+(n.idx+2);}
-    else{if(n.idx<29)next=''+(Math.floor((n.idx+1)/3)+1)+'-'+((n.idx+1)%3+1);}
-    if(next&&isUnlocked(next)){startLevel(next);}else{showMenu();}
-  };
-  document.getElementById('menuBtn').onclick=()=>{hideWin();showMenu();};
-  
-  // 方向按钮 - pointerdown 防止重复
-  document.querySelectorAll('.dp').forEach(b=>{
-    b.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      b.setPointerCapture(e.pointerId);
-      let d=b.dataset.dir;
-      if(d==='up')move(0,-1);
-      if(d==='down')move(0,1);
-      if(d==='left')move(-1,0);
-      if(d==='right')move(1,0);
-    });
-  });
-  
-  // 键盘
-  window.addEventListener('keydown',e=>{
-    if(e.repeat)return;
-    if(keyPressed[e.code])return;
-    keyPressed[e.code]=true;
-    if(['ArrowUp','KeyW'].includes(e.code))move(0,-1);
-    if(['ArrowDown','KeyS'].includes(e.code))move(0,1);
-    if(['ArrowLeft','KeyA'].includes(e.code))move(-1,0);
-    if(['ArrowRight','KeyD'].includes(e.code))move(1,0);
-    if(e.code==='Escape')showMenu();
-  });
-  window.addEventListener('keyup',e=>{keyPressed[e.code]=false;});
-  
-  // 触摸滑动
-  let tsX=0,tsY=0;
-  document.addEventListener('touchstart',e=>{
-    tsX=e.touches[0].clientX;
-    tsY=e.touches[0].clientY;
-  },{passive:true});
-  document.addEventListener('touchend',e=>{
-    let dx=e.changedTouches[0].clientX-tsX;
-    let dy=e.changedTouches[0].clientY-tsY;
-    if(Math.max(Math.abs(dx),Math.abs(dy))<30)return;
-    if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1,0);
-    else move(0,dy>0?1:-1);
-  },{passive:true});
-  
-  window.addEventListener('popstate',e=>{if(st.cur){e.preventDefault();showMenu();}});
-  window.addEventListener('resize',refresh);
-  window.addEventListener('orientationchange',refresh);
-  if(window.visualViewport)window.visualViewport.addEventListener('resize',refresh);
-  document.addEventListener('touchmove',e=>{if(e.target.closest('#dirPad'))e.preventDefault();},{passive:false});
-  document.addEventListener('contextmenu',e=>e.preventDefault());
-}
-
-init();
-})();
-</script>
-</body>
-</html>
+function modal(title,text,cb){$("mt").textContent=title;$("mx").textContent=text;$("mi").value="";$("modal").classList.remove("hidden");$("mok").onclick=()=>{$("modal").classList.add("hidden");cb($("mi").value)};$("mno").onclick=()=>$("modal").classList.add("hidden")}
+$("adminBtn").onclick=()=>modal("管理员模式","请输入管理员密码。",v=>{if(v==="235689850525"){st.admin=true;st.normal=new Set([...Array(30).keys()]);st.fog=new Set([...Array(15).keys()]);localStorage.setItem(AKEY,"1");save();render(normal,"levels",st.normal);render(fog,"fogLevels",st.fog)}else alert("密码错误")});
+$("resetBtn").onclick=()=>modal("确认重置","请输入 RESET 以确认。",v=>{if(v==="RESET"){st.normal.clear();st.fog.clear();st.admin=false;localStorage.removeItem(AKEY);localStorage.removeItem(SKEY);save();render(normal,"levels",st.normal);render(fog,"fogLevels",st.fog);alert("进度已重置")}});
+$("fogBtn").onclick=()=>{if(all()){render(fog,"fogLevels",st.fog);show($("fogMenu"))}};$("fogBack").onclick=()=>show($("menu"));$("back").onclick=()=>{st.a=null;render(normal,"levels",st.normal);show($("menu"))};$("cm").onclick=()=>{if(st.cfg&&st.cfg.type==="fog"){render(fog,"fogLevels",st.fog);show($("fogMenu"))}else{render(normal,"levels",st.normal);show($("menu"))}};
+function startCustom(){let w=Math.max(7,Math.min(99,+$("cw").value||25)),h=Math.max(7,Math.min(99,+$("ch").value||25));if(!(w&1))w--;if(!(h&1))h--;start({type:"custom",id:"自定义",w,h,d:10})}
+$("customBtn").onclick=()=>{if(all())show($("custom"))};$("gen").onclick=startCustom;$("cb").onclick=()=>show($("menu"));
+function refresh(){if(st.a){resize();draw()}}addEventListener("resize",refresh);addEventListener("orientationchange",()=>setTimeout(refresh,150));if(visualViewport)visualViewport.addEventListener("resize",refresh);
+load();render(normal,"levels",st.normal);render(fog,"fogLevels",st.fog);show($("menu"));
+</script></body></html>
