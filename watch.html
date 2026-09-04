@@ -30,8 +30,8 @@ canvas{display:block;border-radius:4px;background:#0a0a1a}
 #winOverlay h2{color:#6ee7ff;font-size:1.2rem;margin-bottom:8px}
 #winOverlay button{margin:4px;padding:6px 16px;background:#1e2345;border:1px solid #3a4070;border-radius:8px;color:#e0e0ff;font-size:.8rem;cursor:pointer}
 
-/* 表冠提示 */
-#crownHint{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:.6rem;color:#8892b0;opacity:.7}
+/* 触摸提示 */
+#touchHint{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:.6rem;color:#8892b0;opacity:.7}
 
 /* 帮助按钮 */
 #helpBtn{position:fixed;top:4px;right:4px;z-index:1000;padding:4px 8px;background:#2a2f4a;border:1px solid #4a5070;border-radius:4px;color:#e0e0ff;font-size:.7rem;cursor:pointer}
@@ -74,7 +74,7 @@ canvas{display:block;border-radius:4px;background:#0a0a1a}
 <div id="gameArea" style="display:none">
 <div id="mazeWrap"><canvas id="cv"></canvas></div>
 <div id="info"></div>
-<div id="crownHint">旋转表冠移动</div>
+<div id="touchHint">滑动屏幕移动</div>
 </div>
 </div>
 <div id="winOverlay">
@@ -260,23 +260,6 @@ function showGame(){document.getElementById('menu').style.display='none';documen
 function openHelp(){document.getElementById('helpOverlay').style.display='flex';}
 function closeHelp(){document.getElementById('helpOverlay').style.display='none';}
 
-// 表冠旋转控制（华为手表）
-let crownAccum = 0;
-function handleCrown(event) {
-  // 表冠旋转事件
-  if (event.rotationRate) {
-    crownAccum += event.rotationRate.beta || 0;
-    if (Math.abs(crownAccum) > 30) {
-      if (crownAccum > 0) {
-        move(0, -1); // 上
-      } else {
-        move(0, 1);  // 下
-      }
-      crownAccum = 0;
-    }
-  }
-}
-
 // 触摸滑动控制
 let touchStartX = 0, touchStartY = 0;
 function handleTouchStart(e) {
@@ -317,19 +300,25 @@ function init(){
   document.getElementById('menuBtn').onclick=()=>{hideWin();showMenu();};
   document.getElementById('helpBtn').onclick=openHelp;
   
-  // 表冠事件监听（华为手表）
-  if (window.device && window.device.onCrown) {
-    window.device.onCrown(handleCrown);
-  }
-  
   // 触摸事件
   document.addEventListener('touchstart', handleTouchStart, {passive:true});
   document.addEventListener('touchend', handleTouchEnd, {passive:true});
   
-  // 点击确认（手表屏幕小，点击即确认）
-  document.addEventListener('click', function(e) {
-    if(e.target.tagName==='BUTTON' || e.target.closest('button')) return;
-    // 点击屏幕中央区域确认/前进
+  // 点击迷宫区域移动（上/下/左/右区域判断）
+  document.getElementById('cv').addEventListener('click', function(e) {
+    if(!mz) return;
+    let rect = cv.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+    let cx = rect.width / 2;
+    let cy = rect.height / 2;
+    let dx = x - cx;
+    let dy = y - cy;
+    if(Math.abs(dx) > Math.abs(dy)) {
+      move(dx > 0 ? 1 : -1, 0);
+    } else {
+      move(0, dy > 0 ? 1 : -1);
+    }
   });
   
   window.addEventListener('resize', ()=>{if(mz){resizeCanvas();}});
