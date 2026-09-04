@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f0f23">
 <title>MazeGame</title>
 <style>
@@ -51,10 +50,7 @@ canvas{display:block;border-radius:8px;background:#0a0a1a;box-shadow:0 0 20px rg
 #winOverlay h2{color:#6ee7ff;font-size:1.8rem;margin-bottom:12px}
 #winOverlay button{margin:6px;padding:10px 24px;background:#1e2345;border:1px solid #3a4070;border-radius:10px;color:#e0e0ff;font-size:1rem;cursor:pointer}
 #winOverlay button:active{background:#2a3060}
-
-/* 说明页面样式 */
 #helpBtn{position:fixed;top:8px;right:8px;z-index:1000;padding:6px 12px;background:#2a2f4a;border:1px solid #4a5070;border-radius:6px;color:#e0e0ff;font-size:.8rem;cursor:pointer}
-#helpBtn:active{background:#3a4060}
 #helpOverlay{position:fixed;inset:0;background:rgba(15,15,35,.95);display:none;flex-direction:column;z-index:2000;overflow-y:auto}
 #helpOverlay .helpHeader{position:sticky;top:0;background:#0f0f23;padding:12px;border-bottom:1px solid #2a2f4a;display:flex;justify-content:space-between;align-items:center}
 #helpOverlay .helpHeader h2{color:#6ee7ff;font-size:1.2rem}
@@ -105,58 +101,32 @@ canvas{display:block;border-radius:8px;background:#0a0a1a;box-shadow:0 0 20px rg
 <button id="nextBtn">下一关</button>
 <button id="menuBtn">返回菜单</button>
 </div>
-
-<!-- 说明页面 -->
 <div id="helpOverlay">
-<div class="helpHeader">
-<h2>游戏说明</h2>
-<button class="helpClose" onclick="closeHelp()">关闭</button>
-</div>
+<div class="helpHeader"><h2>游戏说明</h2><button class="helpClose" onclick="closeHelp()">关闭</button></div>
 <div class="helpContent">
 <h3>游戏简介</h3>
 <p>MazeGame 是一款迷宫解谜游戏，包含 <span class="highlight">经典模式 30 关</span> 和 <span class="highlight">迷雾模式 15 关</span>，难度逐步递增。</p>
-
 <h3>操作方式</h3>
 <p>键盘：方向键 / WASD 移动</p>
 <p>触屏：点击方向按钮或滑动屏幕</p>
-<p>手表：旋转表冠 / 触摸滑动</p>
-
 <h3>游戏元素</h3>
 <p>起点 <span style="color:#22c55e">绿色</span> | 终点 <span style="color:#ef4444">红色</span> | 玩家 <span style="color:#3b82f6">蓝色</span></p>
 <p>钥匙 <span style="color:#ffd700">金色</span> | 门 <span style="color:#c026ff">紫色</span></p>
-
 <h3>解锁规则</h3>
 <p>逐级解锁，完成上一关才能进入下一关。</p>
 <p class="note">免费体验关：3-1、9-1、F-3（无需解锁）</p>
-
-<div class="device-box">
-<h4>手机端</h4>
-<p>3-1、9-1、F-3 为免费试玩关卡。</p>
-<p>购买完整版后可解锁全部关卡。</p>
-</div>
-
-<div class="device-box">
-<h4>手表端</h4>
-<p>需先在手机端购买完整版，手表端自动同步解锁。</p>
-<p>手表端暂不支持直接购买。</p>
-</div>
-
-<h3>存档说明</h3>
-<p>游戏进度自动保存到本地存储。</p>
-<p>支持从 V5 版本自动迁移存档。</p>
-
-<h3>管理员模式</h3>
-<p>输入管理员密码可一键解锁全部关卡。</p>
-<p class="note">此功能仅用于测试，正式版本请通过正常游戏解锁。</p>
+<div class="device-box"><h4>手机端</h4><p>3-1、9-1、F-3 为免费试玩关卡。</p><p>购买完整版后可解锁全部关卡。</p></div>
+<div class="device-box"><h4>手表端</h4><p>需先在手机端购买完整版，手表端自动同步解锁。</p></div>
+<h3>存档说明</h3><p>游戏进度自动保存到本地存储。</p><p>支持从 V5 版本自动迁移存档。</p>
+<h3>管理员模式</h3><p>输入管理员密码可一键解锁全部关卡。</p><p class="note">此功能仅用于测试。</p>
 </div>
 </div>
-
 <script>
 (function(){
 const SAVE_KEY='maze_v6_save',ADMIN_KEY='maze_v6_admin';
 const FREE_LEVELS=new Set(['3-1','9-1','F-3']);
 let st={normal:[],fog:[],admin:false,cur:null,moving:false};
-let cv,ctx,W,H,CS,offX,offY,mz,pl,goal,keys,doors,vis,fogMode;
+let cv,ctx,CS,mz,pl,goal,keys,doors,vis,fogMode;
 let keyPressed={};
 
 function loadSave(){try{let d=localStorage.getItem(SAVE_KEY);if(d){let o=JSON.parse(d);if(o&&o.v===6){st.normal=o.normal||[];st.fog=o.fog||[];st.admin=o.admin||false;return}}let oldP=localStorage.getItem('maze_v5_progress'),oldA=localStorage.getItem('maze_v5_admin');if(oldP){try{let o=JSON.parse(oldP);st.normal=o.normal||[];st.fog=o.fog||[]}catch(e){}}if(oldA==='1')st.admin=true;}catch(e){}}
@@ -169,53 +139,580 @@ function isDone(id){let n=parseLevel(id);if(!n)return false;return st[n.m].inclu
 function rand(n){return Math.floor(Math.random()*n);}
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=rand(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-function buildWindingPath(w,h){let g=Array(h).fill().map(()=>Array(w).fill(1)),x=1,y=1,gx=w-2,gy=h-2;g[y][x]=0;while(x!==gx||y!==gy){let dx=gx-x,dy=gy-y,dirs=[];if(dx>0)dirs.push([2,0]);if(dx<0)dirs.push([-2,0]);if(dy>0)dirs.push([0,2]);if(dy<0)dirs.push([0,-2]);if(dirs.length===0)break;if(Math.random()<0.7&&dirs.length>0){let d=dirs[0];let nx=x+d[0],ny=y+d[1];if(nx>0&&nx<w-1&&ny>0&&ny<h-1){g[y+d[1]/2][x+d[0]/2]=0;g[ny][nx]=0;x=nx;y=ny;continue;}}shuffle(dirs);let moved=false;for(let d of dirs){let nx=x+d[0],ny=y+d[1];if(nx>0&&nx<w-1&&ny>0&&ny<h-1&&g[ny][nx]===1){g[y+d[1]/2][x+d[0]/2]=0;g[ny][nx]=0;x=nx;y=ny;moved=true;break;}}if(!moved)break;}return g;}
+// ===== 迷宫生成：保证1格宽通道，起点到终点唯一基础路线 =====
+function generateMaze(w,h){
+  if(w%2===0)w++;if(h%2===0)h++;
+  let g=Array(h).fill().map(()=>Array(w).fill(1));
+  // 递归回溯生成完美迷宫（保证1格宽，唯一路径）
+  function carve(x,y){
+    g[y][x]=0;
+    let d=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);
+    for(let [dx,dy]of d){
+      let nx=x+dx,ny=y+dy;
+      if(nx>0&&nx<w-1&&ny>0&&ny<h-1&&g[ny][nx]===1){
+        g[y+dy/2][x+dx/2]=0;
+        carve(nx,ny);
+      }
+    }
+  }
+  carve(1,1);
+  // 找最远两点作为起终点
+  let cells=[];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(g[y][x]===0)cells.push([x,y]);
+  let best=0,bi=0,bj=0;
+  for(let i=0;i<cells.length;i++){
+    for(let j=i+1;j<cells.length;j++){
+      let d=Math.abs(cells[i][0]-cells[j][0])+Math.abs(cells[i][1]-cells[j][1]);
+      if(d>best){best=d;bi=i;bj=j;}
+    }
+  }
+  return{g,w,h,sx:cells[bi][0],sy:cells[bi][1],ex:cells[bj][0],ey:cells[bj][1]};
+}
 
-function carve(g,w,h){let sx=1,sy=1;function carveR(x,y){g[y][x]=0;let d=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);for(let [dx,dy]of d){let nx=x+dx,ny=y+dy;if(nx>0&&nx<w-1&&ny>0&&ny<h-1&&g[ny][nx]===1){g[y+dy/2][x+dx/2]=0;carveR(nx,ny);}}}carveR(sx,sy);return g;}
+// BFS找路径
+function findPath(g,w,h,sx,sy,ex,ey){
+  let q=[[sx,sy]],pr=new Map(),K=(x,y)=>x+','+y;
+  pr.set(K(sx,sy),null);
+  while(q.length){
+    let[x,y]=q.shift();
+    if(x===ex&&y===ey){
+      let p=[],c=[x,y];
+      while(c){p.push(c);c=pr.get(K(c[0],c[1]));}
+      return p.reverse();
+    }
+    for(let[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+      let nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<w&&ny>=0&&ny<h&&g[ny][nx]===0&&!pr.has(K(nx,ny))){
+        pr.set(K(nx,ny),[x,y]);
+        q.push([nx,ny]);
+      }
+    }
+  }
+  return null;
+}
 
-function extendDeadEnds(g,w,h){let changed=true,iter=0;while(changed&&iter<50){changed=false;iter++;for(let y=1;y<h-1;y++){for(let x=1;x<w-1;x++){if(g[y][x]!==0)continue;let neighbors=0;for(let [dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]])if(g[y+dy][x+dx]===0)neighbors++;if(neighbors!==1)continue;let path=[];let cx=x,cy=y;while(true){path.push([cx,cy]);let found=false;for(let [dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){let nx=cx+dx,ny=cy+dy;if(nx>=0&&nx<w&&ny>=0&&ny<h&&g[ny][nx]===0&&!path.some(p=>p[0]===nx&&p[1]===ny)){let nc=0;for(let [ddx,ddy]of[[0,1],[0,-1],[1,0],[-1,0]])if(g[ny+ddy][nx+ddx]===0)nc++;if(nc<=2){cx=nx;cy=ny;found=true;break;}}}if(!found)break;}if(path.length<3||Math.random()>0.7)continue;let last=path[path.length-1],ex=last[0],ey=last[1];let dirs=[];for(let [dx,dy]of shuffle([[0,2],[0,-2],[2,0],[-2,0]])){let nx=ex+dx,ny=ey+dy;if(nx>0&&nx<w-1&&ny>0&&ny<h-1&&g[ny][nx]===1){let wx=ex+dx/2,wy=ey+dy/2;if(g[wy][wx]===1){let ok=true;for(let iy=Math.max(0,ny-1);iy<=Math.min(h-1,ny+1)&&ok;iy++){for(let ix=Math.max(0,nx-1);ix<=Math.min(w-1,nx+1)&&ok;ix++){if(g[iy][ix]===0&&!(ix===ex&&iy===ey))ok=false;}}if(ok){dirs.push([dx,dy]);}}}}if(dirs.length===0)continue;let [dx,dy]=dirs[0];let nx=ex+dx,ny=ey+dy;g[ey+dy/2][ex+dx/2]=0;g[ny][nx]=0;changed=true;}}return g;}
+// 在路径上添加蛇形/U型/回折结构（让错误路线更像真的）
+function addComplexity(g,w,h,path,level){
+  if(level<10)return;
+  let complexity=Math.min(0.3,0.05+(level-10)*0.01);
+  for(let i=2;i<path.length-2;i++){
+    if(Math.random()>complexity)continue;
+    let[x,y]=path[i];
+    // 尝试添加U型回折
+    let dirs=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);
+    for(let[dx,dy]of dirs){
+      let nx=x+dx,ny=y+dy;
+      if(nx>1&&nx<w-2&&ny>1&&ny<h-2&&g[ny][nx]===1){
+        // 检查不会形成2x2开放区
+        let wx=x+dx/2,wy=y+dy/2;
+        if(g[wy][wx]===1){
+          g[wy][wx]=0;g[ny][nx]=0;
+          // 再延伸一段形成回折
+          let d2=shuffle([[0,-2],[0,2],[-2,0],[2,0]]);
+          for(let[d2x,d2y]of d2){
+            let nx2=nx+d2x,ny2=ny+d2y;
+            if(nx2>1&&nx2<w-2&&ny2>1&&ny2<h-2&&g[ny2][nx2]===1){
+              let wx2=nx+d2x/2,wy2=ny+d2y/2;
+              if(g[wy2][wx2]===1){
+                g[wy2][wx2]=0;g[ny2][nx2]=0;
+                break;
+              }
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+}
 
-function findPath(g,w,h,sx,sy,ex,ey){let q=[[sx,sy,null]],seen=new Set([sx+','+sy]);while(q.length){let [x,y,par]=q.shift();if(x===ex&&y===ey){let p=[],c={x,y,par};while(c){p.push([c.x,c.y]);c=c.par;}return p.reverse();}for(let [dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){let nx=x+dx,ny=y+dy;if(nx>=0&&nx<w&&ny>=0&&ny<h&&g[ny][nx]===0&&!seen.has(nx+','+ny)){seen.add(nx+','+ny);q.push([nx,ny,{x,y,par}]);}}}return null;}
+// 延长死胡同（让错误岔路更长更逼真）
+function extendDeadEnds(g,w,h){
+  let changed=true,iter=0;
+  while(changed&&iter<30){
+    changed=false;iter++;
+    for(let y=1;y<h-1;y++){
+      for(let x=1;x<w-1;x++){
+        if(g[y][x]!==0)continue;
+        let n=0;
+        for(let[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]])
+          if(g[y+dy][x+dx]===0)n++;
+        if(n!==1)continue;
+        // 死胡同，尝试延长2-6格
+        if(Math.random()>0.6)continue;
+        let cx=x,cy=y,len=0;
+        while(len<6){
+          let dirs=shuffle([[0,2],[0,-2],[2,0],[-2,0]]);
+          let extended=false;
+          for(let[dx,dy]of dirs){
+            let nx=cx+dx,ny=cy+dy;
+            if(nx>1&&nx<w-2&&ny>1&&ny<h-2&&g[ny][nx]===1){
+              let wx=cx+dx/2,wy=cy+dy/2;
+              if(g[wy][wx]===1){
+                // 检查不会形成2x2开放区
+                let ok=true;
+                for(let iy=Math.max(0,ny-1);iy<=Math.min(h-1,ny+1)&&ok;iy++){
+                  for(let ix=Math.max(0,nx-1);ix<=Math.min(w-1,nx+1)&&ok;ix++){
+                    if(g[iy][ix]===0&&!(ix===cx&&iy===cy))ok=false;
+                  }
+                }
+                if(ok){
+                  g[wy][wx]=0;g[ny][nx]=0;
+                  cx=nx;cy=ny;len++;
+                  extended=true;
+                  break;
+                }
+              }
+            }
+          }
+          if(!extended)break;
+        }
+        if(len>0)changed=true;
+      }
+    }
+  }
+}
 
-function isValidMaze(g,w,h){for(let y=0;y<h-1;y++){for(let x=0;x<w-1;x++){if(g[y][x]===0&&g[y][x+1]===0&&g[y+1][x]===0&&g[y+1][x+1]===0)return false;}}let sx=1,sy=1,ex=w-2,ey=h-2;if(g[sy][sx]!==0||g[ey][ex]!==0)return false;return findPath(g,w,h,sx,sy,ex,ey)!==null;}
+// 验证迷宫：1格宽通道，无2x2开放区，墙体连通
+function validateMaze(g,w,h){
+  // 检查2x2开放区
+  for(let y=0;y<h-1;y++){
+    for(let x=0;x<w-1;x++){
+      if(g[y][x]===0&&g[y][x+1]===0&&g[y+1][x]===0&&g[y+1][x+1]===0)return false;
+    }
+  }
+  // 检查起点终点可达
+  let path=findPath(g,w,h,1,1,w-2,h-2);
+  if(!path)return false;
+  return path;
+}
 
-function genValidMaze(w,h){for(let i=0;i<40;i++){let g=buildWindingPath(w,h);g=carve(g,w,h);g=extendDeadEnds(g,w,h);if(isValidMaze(g,w,h))return g;}return null;}
+// 生成完整迷宫（带复杂度）
+function buildMaze(w,h,level){
+  let g=generateMaze(w,h);
+  let path=validateMaze(g.g,g.w,g.h);
+  if(!path)return null;
+  addComplexity(g.g,g.w,g.h,path,level);
+  extendDeadEnds(g.g,g.w,g.h);
+  // 重新找起终点（复杂度添加后可能变化）
+  let cells=[];
+  for(let y=1;y<g.h-1;y++)for(let x=1;x<g.w-1;x++)if(g.g[y][x]===0)cells.push([x,y]);
+  let best=0,bi=0,bj=0;
+  for(let i=0;i<cells.length;i++){
+    for(let j=i+1;j<cells.length;j++){
+      let d=Math.abs(cells[i][0]-cells[j][0])+Math.abs(cells[i][1]-cells[j][1]);
+      if(d>best){best=d;bi=i;bj=j;}
+    }
+  }
+  g.sx=cells[bi][0];g.sy=cells[bi][1];
+  g.ex=cells[bj][0];g.ey=cells[bj][1];
+  return g;
+}
 
-function generateMaze(w,h){let g=genValidMaze(w,h);if(!g){let simple=Array(h).fill().map(()=>Array(w).fill(1));for(let y=1;y<h;y+=2){for(let x=1;x<w;x+=2){simple[y][x]=0;if(x+2<w&&Math.random()<0.5)simple[y][x+1]=0;if(y+2<h&&Math.random()<0.5)simple[y+1][x]=0;}}g=simple;}let cells=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(g[y][x]===0)cells.push([x,y]);let best=0,bi=0,bj=0;for(let i=0;i<cells.length;i++){for(let j=i+1;j<cells.length;j++){let d=Math.abs(cells[i][0]-cells[j][0])+Math.abs(cells[i][1]-cells[j][1]);if(d>best){best=d;bi=i;bj=j;}}}return{g,w,h,sx:cells[bi][0],sy:cells[bi][1],ex:cells[bj][0],ey:cells[bj][1]};}
+// ===== 钥匙和门系统 =====
+function setupKeysAndDoors(m,level){
+  keys=[];doors=[];
+  if(level<6)return; // 前6关没有钥匙门
+  
+  let path=findPath(m.g,m.w,m.h,m.sx,m.sy,m.ex,m.ey);
+  if(!path||path.length<15)return;
+  
+  let nDoors=1;
+  if(level>=12)nDoors=2;
+  if(level>=18)nDoors=3;
+  if(level>=24)nDoors=4;
+  nDoors=Math.min(nDoors,4);
+  
+  let usedPathIndices=new Set();
+  
+  for(let i=0;i<nDoors;i++){
+    // 门放在必经路径上（靠后位置）
+    let doorIdxMin=Math.floor(path.length*(0.4+i*0.15));
+    let doorIdxMax=Math.min(path.length-3,doorIdxMin+Math.floor(path.length*0.1));
+    let doorIdx=-1;
+    for(let tryIdx=doorIdxMin;tryIdx<=doorIdxMax;tryIdx++){
+      if(!usedPathIndices.has(tryIdx)){
+        doorIdx=tryIdx;break;
+      }
+    }
+    if(doorIdx===-1)continue;
+    usedPathIndices.add(doorIdx);
+    
+    let dPos=path[doorIdx];
+    let doorId='door_'+i;
+    doors.push({x:dPos[0],y:dPos[1],id:doorId,open:false});
+    
+    // 钥匙放在远离门的死胡同（错误路线上）
+    let keyPos=findKeyPosition(m.g,m.w,m.h,dPos,path,usedPathIndices);
+    if(keyPos){
+      keys.push({x:keyPos[0],y:keyPos[1],id:doorId,taken:false});
+    }
+  }
+}
 
-function setupDoors(m,d){let doors=[];let path=findPath(m.g,m.w,m.h,m.sx,m.sy,m.ex,m.ey);if(!path||path.length<20||d<18)return doors;let nDoors=1;if(d>=23)nDoors=2;if(d>=26)nDoors=Math.min(4,2+Math.floor((d-23)/3));for(let i=0;i<nDoors;i++){let kIdx=Math.floor(path.length*(0.15+Math.random()*0.22));let dIdx=kIdx+7+rand(Math.max(1,path.length*0.12-kIdx-5));if(dIdx>=path.length-3)dIdx=path.length-4;if(dIdx<=kIdx+2)dIdx=kIdx+3;let kPos=path[kIdx],dPos=path[dIdx];let keyId='key_'+i;doors.push({key:{x:kPos[0],y:kPos[1],id:keyId,taken:false},door:{x:dPos[0],y:dPos[1],id:keyId,open:false}});}return doors;}
+// 找钥匙位置：远离门，在死胡同或错误路线上
+function findKeyPosition(g,w,h,doorPos,path,usedIndices){
+  let pathSet=new Set(path.map(p=>p[0]+','+p[1]));
+  let candidates=[];
+  
+  for(let y=1;y<h-1;y++){
+    for(let x=1;x<w-1;x++){
+      if(g[y][x]!==0)continue;
+      if(x===doorPos[0]&&y===doorPos[1])continue;
+      if(pathSet.has(x+','+y))continue; // 不在主路径上
+      
+      // 计算与门的距离
+      let dist=Math.abs(x-doorPos[0])+Math.abs(y-doorPos[1]);
+      if(dist<8)continue; // 至少远离8格
+      
+      // 检查是否是死胡同（只有一个出口）
+      let exits=0;
+      for(let[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+        if(g[y+dy][x+dx]===0)exits++;
+      }
+      if(exits===1)candidates.push([x,y,dist]);
+    }
+  }
+  
+  if(candidates.length===0)return null;
+  // 优先选距离适中的（不太近也不太远）
+  candidates.sort((a,b)=>Math.abs(a[2]-15)-Math.abs(b[2]-15));
+  return candidates[0];
+}
 
-function startLevel(id){let n=parseLevel(id);if(!n)return;fogMode=n.m==='fog';let size;if(fogMode){size=17+n.idx*Math.floor((55-17)/14);}else{size=15+n.idx*Math.floor((75-15)/29);}size=size%2===0?size+1:size;let m=generateMaze(size,size);if(!m)return;mz=m;pl={x:m.sx,y:m.sy};goal={x:m.ex,y:m.ey};keys=[];doors=[];let doorData=setupDoors(m,n.idx);for(let d of doorData){keys.push(d.key);doors.push(d.door);}vis=Array(m.h).fill().map(()=>Array(m.w).fill(false));st.cur=id;updateInfo();resizeCanvas();draw();history.pushState({game:true},'');history.pushState({game:true},'');}
+// ===== 关卡系统 =====
+function startLevel(id){
+  let n=parseLevel(id);
+  if(!n)return;
+  fogMode=n.m==='fog';
+  let size;
+  if(fogMode){
+    size=17+n.idx*Math.floor((55-17)/14);
+  }else{
+    size=15+n.idx*Math.floor((80-15)/29); // 最大80
+  }
+  size=size%2===0?size+1:size;
+  let m=buildMaze(size,size,n.idx);
+  if(!m)return;
+  mz=m;
+  pl={x:m.sx,y:m.sy};
+  goal={x:m.ex,y:m.ey};
+  setupKeysAndDoors(m,n.idx);
+  vis=Array(m.h).fill().map(()=>Array(m.w).fill(false));
+  st.cur=id;
+  updateInfo();
+  resizeCanvas();
+  draw();
+  history.pushState({game:true},'');
+  history.pushState({game:true},'');
+}
 
-function isVisible(x,y){if(!fogMode)return true;let d=Math.abs(x-pl.x)+Math.abs(y-pl.y);return d<=4;}
+function isVisible(x,y){
+  if(!fogMode)return true;
+  return Math.abs(x-pl.x)+Math.abs(y-pl.y)<=4;
+}
 
-function draw(){if(!cv)return;ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,cv.width,cv.height);if(!mz)return;let cs=CS,ox=offX,oy=offY;for(let y=0;y<mz.h;y++){for(let x=0;x<mz.w;x++){if(fogMode&&!vis[y][x])continue;let px=ox+x*cs,py=oy+y*cs;if(mz.g[y][x]===1){ctx.fillStyle='#1a1f3a';ctx.fillRect(px,py,cs,cs);}else{ctx.fillStyle='#0f1525';ctx.fillRect(px,py,cs,cs);if(x===mz.sx&&y===mz.sy){ctx.fillStyle='#22c55e';ctx.fillRect(px+2,py+2,cs-4,cs-4);}if(x===goal.x&&y===goal.y){ctx.fillStyle='#ef4444';ctx.fillRect(px+2,py+2,cs-4,cs-4);}}}}for(let k of keys){if(!k.taken&&(!fogMode||vis[k.y][k.x])){let px=ox+k.x*cs,py=oy+k.y*cs;ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(px+cs/2,py+cs/2,cs/3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.font='bold '+Math.max(8,cs/2)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('.',px+cs/2,py+cs/2);}}for(let d of doors){if(!d.open&&(!fogMode||vis[d.y][d.x])){let px=ox+d.x*cs,py=oy+d.y*cs;ctx.fillStyle='#c026ff';ctx.fillRect(px+1,py+1,cs-2,cs-2);ctx.fillStyle='#fff';ctx.font='bold '+Math.max(8,cs/2)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('L',px+cs/2,py+cs/2);}}let px=ox+pl.x*cs,py=oy+pl.y*cs;ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(px+cs/2,py+cs/2,cs/2.5,0,Math.PI*2);ctx.fill();if(fogMode){for(let y=0;y<mz.h;y++){for(let x=0;x<mz.w;x++){let d=Math.abs(x-pl.x)+Math.abs(y-pl.y);if(d>4){ctx.fillStyle='rgba(0,0,0,'+Math.min(1,(d-4)/3)+')';ctx.fillRect(ox+x*cs,oy+y*cs,cs,cs);}}}}}
+function draw(){
+  if(!cv)return;
+  ctx.fillStyle='#0a0a1a';
+  ctx.fillRect(0,0,cv.width,cv.height);
+  if(!mz)return;
+  let cs=CS;
+  for(let y=0;y<mz.h;y++){
+    for(let x=0;x<mz.w;x++){
+      if(fogMode&&!vis[y][x])continue;
+      let px=x*cs,py=y*cs;
+      if(mz.g[y][x]===1){
+        ctx.fillStyle='#1a1f3a';
+        ctx.fillRect(px,py,cs,cs);
+      }else{
+        ctx.fillStyle='#0f1525';
+        ctx.fillRect(px,py,cs,cs);
+        if(x===mz.sx&&y===mz.sy){
+          ctx.fillStyle='#22c55e';
+          ctx.fillRect(px+2,py+2,cs-4,cs-4);
+        }
+        if(x===goal.x&&y===goal.y){
+          ctx.fillStyle='#ef4444';
+          ctx.fillRect(px+2,py+2,cs-4,cs-4);
+        }
+      }
+    }
+  }
+  // 钥匙
+  for(let k of keys){
+    if(!k.taken&&(!fogMode||vis[k.y][k.x])){
+      let px=k.x*cs,py=k.y*cs;
+      ctx.fillStyle='#ffd700';
+      ctx.beginPath();
+      ctx.arc(px+cs/2,py+cs/2,cs/3,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+  // 门
+  for(let d of doors){
+    if(!d.open&&(!fogMode||vis[d.y][d.x])){
+      let px=d.x*cs,py=d.y*cs;
+      ctx.fillStyle='#c026ff';
+      ctx.fillRect(px+1,py+1,cs-2,cs-2);
+    }
+  }
+  // 玩家
+  let px=pl.x*cs,py=pl.y*cs;
+  ctx.fillStyle='#3b82f6';
+  ctx.beginPath();
+  ctx.arc(px+cs/2,py+cs/2,cs/2.5,0,Math.PI*2);
+  ctx.fill();
+  // 迷雾
+  if(fogMode){
+    for(let y=0;y<mz.h;y++){
+      for(let x=0;x<mz.w;x++){
+        let d=Math.abs(x-pl.x)+Math.abs(y-pl.y);
+        if(d>4){
+          ctx.fillStyle='rgba(0,0,0,'+Math.min(1,(d-4)/3)+')';
+          ctx.fillRect(x*cs,y*cs,cs,cs);
+        }
+      }
+    }
+  }
+}
 
-function updateVis(){if(!fogMode||!mz)return;for(let y=0;y<mz.h;y++){for(let x=0;x<mz.w;x++){if(Math.abs(x-pl.x)+Math.abs(y-pl.y)<=4)vis[y][x]=true;}}}
+function updateVis(){
+  if(!fogMode||!mz)return;
+  for(let y=0;y<mz.h;y++){
+    for(let x=0;x<mz.w;x++){
+      if(Math.abs(x-pl.x)+Math.abs(y-pl.y)<=4)vis[y][x]=true;
+    }
+  }
+}
 
-function move(dx,dy){if(st.moving||!mz)return;let nx=pl.x+dx,ny=pl.y+dy;if(nx<0||nx>=mz.w||ny<0||ny>=mz.h)return;if(mz.g[ny][nx]===1)return;for(let d of doors){if(!d.open&&d.x===nx&&d.y===ny){let hasKey=false;for(let k of keys)if(k.id===d.id&&!k.taken)hasKey=true;if(!hasKey){updateInfo('需要钥匙!');return;}d.open=true;updateInfo('门已打开');break;}}pl.x=nx;pl.y=ny;st.moving=true;setTimeout(()=>st.moving=false,120);updateVis();draw();for(let k of keys){if(!k.taken&&k.x===pl.x&&k.y===pl.y){k.taken=true;updateInfo('获得钥匙!');}}if(pl.x===goal.x&&pl.y===goal.y){let n=parseLevel(st.cur);if(n){st[n.m].push(st.cur);saveGame();}showWin();}updateInfo();}
+function move(dx,dy){
+  if(st.moving||!mz)return;
+  let nx=pl.x+dx,ny=pl.y+dy;
+  if(nx<0||nx>=mz.w||ny<0||ny>=mz.h)return;
+  if(mz.g[ny][nx]===1)return;
+  // 检查门
+  for(let d of doors){
+    if(!d.open&&d.x===nx&&d.y===ny){
+      let hasKey=keys.some(k=>k.id===d.id&&!k.taken);
+      if(!hasKey){updateInfo('需要钥匙!');return;}
+      d.open=true;
+      updateInfo('门已打开');
+      break;
+    }
+  }
+  pl.x=nx;pl.y=ny;
+  st.moving=true;
+  setTimeout(()=>st.moving=false,150);
+  updateVis();
+  draw();
+  // 捡钥匙
+  for(let k of keys){
+    if(!k.taken&&k.x===pl.x&&k.y===pl.y){
+      k.taken=true;
+      updateInfo('获得钥匙!');
+    }
+  }
+  // 通关
+  if(pl.x===goal.x&&pl.y===goal.y){
+    let n=parseLevel(st.cur);
+    if(n){st[n.m].push(st.cur);saveGame();}
+    showWin();
+  }
+  updateInfo();
+}
 
-function updateInfo(msg){let el=document.getElementById('info');let base=st.cur||'';let extra=msg||'';el.textContent=base+(extra?' | '+extra:'');}
+function updateInfo(msg){
+  let el=document.getElementById('info');
+  let base=st.cur||'';
+  let extra=msg||'';
+  el.textContent=base+(extra?' | '+extra:'');
+}
 
 function showWin(){document.getElementById('winOverlay').style.display='flex';}
 function hideWin(){document.getElementById('winOverlay').style.display='none';}
 
-function resizeCanvas(){cv=document.getElementById('cv');ctx=cv.getContext('2d');if(!mz)return;let maxW=Math.min(window.innerWidth-16,600);let maxH=Math.min(window.innerHeight-200,600);if(window.innerWidth>=768&&window.innerHeight>=500){maxW=Math.min(window.innerWidth*0.5,500);maxH=Math.min(window.innerHeight-100,500);}CS=Math.floor(Math.min(maxW/mz.w,maxH/mz.h));if(CS<4)CS=4;W=CS*mz.w;H=CS*mz.h;cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';offX=0;offY=0;draw();}
+function resizeCanvas(){
+  cv=document.getElementById('cv');
+  ctx=cv.getContext('2d');
+  if(!mz)return;
+  let maxW=Math.min(window.innerWidth-16,600);
+  let maxH=Math.min(window.innerHeight-200,600);
+  if(window.innerWidth>=768&&window.innerHeight>=500){
+    maxW=Math.min(window.innerWidth*0.5,500);
+    maxH=Math.min(window.innerHeight-100,500);
+  }
+  CS=Math.floor(Math.min(maxW/mz.w,maxH/mz.h));
+  if(CS<4)CS=4;
+  cv.width=CS*mz.w;
+  cv.height=CS*mz.h;
+  cv.style.width=cv.width+'px';
+  cv.style.height=cv.height+'px';
+  draw();
+}
 
 function refresh(){resizeCanvas();}
 
-function buildMenu(){let nb=document.getElementById('normalBtns'),fb=document.getElementById('fogBtns');nb.innerHTML='';fb.innerHTML='';for(let i=0;i<30;i++){let id=''+(Math.floor(i/3)+1)+'-'+(i%3+1);let b=document.createElement('button');b.textContent=id;b.className=isDone(id)?'done':(!isUnlocked(id)?'locked':'');if(FREE_LEVELS.has(id))b.classList.add('free');b.disabled=!isUnlocked(id);b.onclick=()=>{if(isUnlocked(id))startLevel(id);};nb.appendChild(b);}for(let i=0;i<15;i++){let id='F-'+(i+1);let b=document.createElement('button');b.textContent=id;b.className=isDone(id)?'done':(!isUnlocked(id)?'locked':'');if(FREE_LEVELS.has(id))b.classList.add('free');b.disabled=!isUnlocked(id);b.onclick=()=>{if(isUnlocked(id))startLevel(id);};fb.appendChild(b);}}
+function buildMenu(){
+  let nb=document.getElementById('normalBtns'),fb=document.getElementById('fogBtns');
+  nb.innerHTML='';fb.innerHTML='';
+  for(let i=0;i<30;i++){
+    let id=''+(Math.floor(i/3)+1)+'-'+(i%3+1);
+    let b=document.createElement('button');
+    b.textContent=st.admin?(id+' ✓'):id;
+    b.className=isDone(id)?'done':(!isUnlocked(id)?'locked':'');
+    if(FREE_LEVELS.has(id))b.classList.add('free');
+    if(!isUnlocked(id))b.textContent=id+' 🔒';
+    b.disabled=!isUnlocked(id);
+    b.onclick=()=>{if(isUnlocked(id))startLevel(id);};
+    nb.appendChild(b);
+  }
+  for(let i=0;i<15;i++){
+    let id='F-'+(i+1);
+    let b=document.createElement('button');
+    b.textContent=st.admin?(id+' ✓'):id;
+    b.className=isDone(id)?'done':(!isUnlocked(id)?'locked':'');
+    if(FREE_LEVELS.has(id))b.classList.add('free');
+    if(!isUnlocked(id))b.textContent=id+' 🔒';
+    b.disabled=!isUnlocked(id);
+    b.onclick=()=>{if(isUnlocked(id))startLevel(id);};
+    fb.appendChild(b);
+  }
+}
 
-function showMenu(){document.getElementById('menu').style.display='block';document.getElementById('gameArea').style.display='none';document.getElementById('title').textContent='MazeGame';buildMenu();}
-function showGame(){document.getElementById('menu').style.display='none';document.getElementById('gameArea').style.display='flex';document.getElementById('title').textContent='MazeGame - '+st.cur;}
+function showMenu(){
+  document.getElementById('menu').style.display='block';
+  document.getElementById('gameArea').style.display='none';
+  document.getElementById('title').textContent='MazeGame';
+  buildMenu();
+}
+function showGame(){
+  document.getElementById('menu').style.display='none';
+  document.getElementById('gameArea').style.display='flex';
+  document.getElementById('title').textContent='MazeGame - '+st.cur;
+}
 
-function tryFullscreen(){let el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();}
+function tryFullscreen(){
+  let el=document.documentElement;
+  if(el.requestFullscreen)el.requestFullscreen();
+  else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+}
 
-// 帮助页面功能
 function openHelp(){document.getElementById('helpOverlay').style.display='flex';}
 function closeHelp(){document.getElementById('helpOverlay').style.display='none';}
 
-function init(){loadSave();buildMenu();document.getElementById('splash').style.opacity='0';setTimeout(()=>{document.getElementById('splash').style.display='none';document.getElementById('app').classList.add('show');showMenu();},800);document.getElementById('fsBtn').onclick=tryFullscreen;document.getElementById('helpBtn').onclick=openHelp;document.getElementById('customBtn').onclick=()=>{let s=prompt('输入迷宫尺寸(奇数,5-99):','21');if(!s)return;let n=parseInt(s);if(isNaN(n)||n<5||n>99){alert('无效尺寸');return;}if(n%2===0)n++;mz=generateMaze(n,n);pl={x:mz.sx,y:mz.sy};goal={x:mz.ex,y:mz.ey};keys=[];doors=[];vis=Array(mz.h).fill().map(()=>Array(mz.w).fill(false));st.cur='自定义';fogMode=false;showGame();resizeCanvas();draw();};document.getElementById('adminBtn').onclick=()=>{let box=document.getElementById('adminBox');box.style.display=box.style.display==='block'?'none':'block';};document.getElementById('adminOk').onclick=()=>{let v=document.getElementById('adminIn').value;if(v==='235689850525'){st.admin=true;saveGame();alert('管理员模式已开启');document.getElementById('adminBox').style.display='none';buildMenu();}else{alert('密码错误');}};document.getElementById('adminCancel').onclick=()=>{document.getElementById('adminBox').style.display='none';};document.getElementById('resetBtn').onclick=()=>{let v=prompt('输入 RESET 确认重置:');if(v==='RESET'){st.normal=[];st.fog=[];st.admin=false;localStorage.removeItem(SAVE_KEY);localStorage.removeItem(ADMIN_KEY);saveGame();buildMenu();alert('进度已重置');}};document.getElementById('nextBtn').onclick=()=>{hideWin();let n=parseLevel(st.cur);if(!n)return;let next;if(n.m==='fog'){if(n.idx<14)next='F-'+(n.idx+2);}else{if(n.idx<29)next=''+(Math.floor((n.idx+1)/3)+1)+'-'+((n.idx+1)%3+1);}if(next&&isUnlocked(next)){startLevel(next);}else{showMenu();}};document.getElementById('menuBtn').onclick=()=>{hideWin();showMenu();};document.querySelectorAll('.dp').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);let d=b.dataset.dir;if(d==='up')move(0,-1);if(d==='down')move(0,1);if(d==='left')move(-1,0);if(d==='right')move(1,0);});});window.addEventListener('keydown',e=>{if(e.repeat)return;if(keyPressed[e.code])return;keyPressed[e.code]=true;if(['ArrowUp','KeyW'].includes(e.code))move(0,-1);if(['ArrowDown','KeyS'].includes(e.code))move(0,1);if(['ArrowLeft','KeyA'].includes(e.code))move(-1,0);if(['ArrowRight','KeyD'].includes(e.code))move(1,0);if(e.code==='Escape')showMenu();});window.addEventListener('keyup',e=>{keyPressed[e.code]=false;});window.addEventListener('popstate',e=>{if(st.cur){e.preventDefault();showMenu();}});window.addEventListener('resize',refresh);window.addEventListener('orientationchange',refresh);if(window.visualViewport)window.visualViewport.addEventListener('resize',refresh);document.addEventListener('touchmove',e=>{if(e.target.closest('#dirPad'))e.preventDefault();},{passive:false});document.addEventListener('contextmenu',e=>e.preventDefault());}
+function init(){
+  loadSave();
+  buildMenu();
+  document.getElementById('splash').style.opacity='0';
+  setTimeout(()=>{
+    document.getElementById('splash').style.display='none';
+    document.getElementById('app').classList.add('show');
+    showMenu();
+  },800);
+  document.getElementById('fsBtn').onclick=tryFullscreen;
+  document.getElementById('helpBtn').onclick=openHelp;
+  document.getElementById('customBtn').onclick=()=>{
+    let s=prompt('输入迷宫尺寸(奇数,5-99):','21');
+    if(!s)return;
+    let n=parseInt(s);
+    if(isNaN(n)||n<5||n>99){alert('无效尺寸');return;}
+    if(n%2===0)n++;
+    mz=buildMaze(n,n,10);
+    if(!mz){alert('生成失败');return;}
+    pl={x:mz.sx,y:mz.sy};goal={x:mz.ex,y:mz.ey};keys=[];doors=[];
+    vis=Array(mz.h).fill().map(()=>Array(mz.w).fill(false));
+    st.cur='自定义';fogMode=false;showGame();resizeCanvas();draw();
+  };
+  document.getElementById('adminBtn').onclick=()=>{
+    let box=document.getElementById('adminBox');
+    box.style.display=box.style.display==='block'?'none':'block';
+  };
+  document.getElementById('adminOk').onclick=()=>{
+    let v=document.getElementById('adminIn').value;
+    if(v==='235689850525'){
+      st.admin=true;
+      st.normal=[];st.fog=[];
+      for(let i=0;i<30;i++)st.normal.push(''+(Math.floor(i/3)+1)+'-'+(i%3+1));
+      for(let i=0;i<15;i++)st.fog.push('F-'+(i+1));
+      saveGame();
+      alert('管理员模式已开启');
+      document.getElementById('adminBox').style.display='none';
+      buildMenu();
+    }else{alert('密码错误');}
+  };
+  document.getElementById('adminCancel').onclick=()=>{
+    document.getElementById('adminBox').style.display='none';
+  };
+  document.getElementById('resetBtn').onclick=()=>{
+    let v=prompt('输入 RESET 确认重置:');
+    if(v==='RESET'){
+      st.normal=[];st.fog=[];st.admin=false;
+      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      saveGame();
+      buildMenu();
+      alert('进度已重置');
+    }
+  };
+  document.getElementById('nextBtn').onclick=()=>{
+    hideWin();
+    let n=parseLevel(st.cur);
+    if(!n)return;
+    let next;
+    if(n.m==='fog'){if(n.idx<14)next='F-'+(n.idx+2);}
+    else{if(n.idx<29)next=''+(Math.floor((n.idx+1)/3)+1)+'-'+((n.idx+1)%3+1);}
+    if(next&&isUnlocked(next)){startLevel(next);}else{showMenu();}
+  };
+  document.getElementById('menuBtn').onclick=()=>{hideWin();showMenu();};
+  
+  // 方向按钮 - pointerdown 防止重复
+  document.querySelectorAll('.dp').forEach(b=>{
+    b.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      b.setPointerCapture(e.pointerId);
+      let d=b.dataset.dir;
+      if(d==='up')move(0,-1);
+      if(d==='down')move(0,1);
+      if(d==='left')move(-1,0);
+      if(d==='right')move(1,0);
+    });
+  });
+  
+  // 键盘
+  window.addEventListener('keydown',e=>{
+    if(e.repeat)return;
+    if(keyPressed[e.code])return;
+    keyPressed[e.code]=true;
+    if(['ArrowUp','KeyW'].includes(e.code))move(0,-1);
+    if(['ArrowDown','KeyS'].includes(e.code))move(0,1);
+    if(['ArrowLeft','KeyA'].includes(e.code))move(-1,0);
+    if(['ArrowRight','KeyD'].includes(e.code))move(1,0);
+    if(e.code==='Escape')showMenu();
+  });
+  window.addEventListener('keyup',e=>{keyPressed[e.code]=false;});
+  
+  // 触摸滑动
+  let tsX=0,tsY=0;
+  document.addEventListener('touchstart',e=>{
+    tsX=e.touches[0].clientX;
+    tsY=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    let dx=e.changedTouches[0].clientX-tsX;
+    let dy=e.changedTouches[0].clientY-tsY;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<30)return;
+    if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1,0);
+    else move(0,dy>0?1:-1);
+  },{passive:true});
+  
+  window.addEventListener('popstate',e=>{if(st.cur){e.preventDefault();showMenu();}});
+  window.addEventListener('resize',refresh);
+  window.addEventListener('orientationchange',refresh);
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',refresh);
+  document.addEventListener('touchmove',e=>{if(e.target.closest('#dirPad'))e.preventDefault();},{passive:false});
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+}
 
 init();
 })();
