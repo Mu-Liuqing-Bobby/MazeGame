@@ -57,19 +57,32 @@ function gen(c){for(let i=0;i<40;i++){let m=maze(c.w,c.h);if(valid(...m))return 
 function setupDoors(c){
  st.keys=[];st.doors=[];
  if(c.type!=="normal"||!c.doors)return;
- let p=path(st.a,st.s,st.e);if(!p||p.length<15)return;
- let n=c.d>=23?2:1;
- n=Math.min(n,4);
+ let p=path(st.a,st.s,st.e);if(!p||p.length<20)return;
+ // 确定门数量：6-11关1个，12-17关2个，18-23关3个，24+关4个
+ let n=c.index>=24?4:c.index>=18?3:c.index>=12?2:1;
  let used=new Set();
+ // 获取所有非正确路线的可通行格子
+ let wrongCells=[];
+ for(let y=1;y<st.a.length-1;y++)for(let x=1;x<st.a[0].length-1;x++)if(st.a[y][x]){
+  let onPath=p.some(pt=>pt[0]===x&&pt[1]===y);
+  if(!onPath)wrongCells.push([x,y]);
+ }
  for(let i=0;i<n;i++){
-  let kIdx=Math.floor(p.length*(.2+i*.18)),dIdx=Math.min(p.length-3,kIdx+Math.max(7,Math.floor(p.length*.12)));
-  if(dIdx<=kIdx+2)continue;
-  while(used.has(kIdx)&&kIdx<dIdx-3)kIdx++;
-  while(used.has(dIdx)&&dIdx>kIdx+3)dIdx--;
-  if(used.has(kIdx)||used.has(dIdx))continue;
-  used.add(kIdx);used.add(dIdx);
-  st.keys.push({x:p[kIdx][0],y:p[kIdx][1],got:false,i});
-  st.doors.push({x:p[dIdx][0],y:p[dIdx][1],open:false,i});
+  // 门在正确路线上
+  let dIdx=Math.floor(p.length*(.25+i*.2));
+  while(used.has(dIdx)&&dIdx<p.length-3)dIdx++;
+  if(used.has(dIdx)||dIdx>=p.length-2)continue;
+  used.add(dIdx);
+  let doorPos=p[dIdx];
+  // 钥匙在错误路线上，远离门（距离>=8）
+  let bestKey=null,bestDist=0;
+  for(let wc of wrongCells){
+   let dist=Math.abs(wc[0]-doorPos[0])+Math.abs(wc[1]-doorPos[1]);
+   if(dist>=8&&dist>bestDist){bestDist=dist;bestKey=wc}
+  }
+  if(!bestKey)continue; // 找不到合适的钥匙位置就跳过这对
+  st.doors.push({x:doorPos[0],y:doorPos[1],open:false,i});
+  st.keys.push({x:bestKey[0],y:bestKey[1],got:false,i});
  }
 }
 
