@@ -6,7 +6,7 @@
 button{font:inherit;color:inherit;background:#353b47;border:1px solid #697282;border-radius:9px;touch-action:manipulation}.hidden{display:none!important}
 .screen{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
 h1{margin:0 0 6px;font-size:1.2rem}.sub,.hint{color:#9aa1ad;text-align:center;font-size:.8rem}
-.phases{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:60vh;overflow:auto}
+.phases{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:50vh;overflow:auto}
 .phase{min-height:50px;font-size:.9rem}.phase.done{background:#36533f}.phase.lock{opacity:.45}
 .levels{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .level{min-height:44px;font-size:.85rem}.level.done{background:#36533f}.level.lock{opacity:.45}
@@ -20,12 +20,20 @@ canvas{display:block;image-rendering:pixelated;max-width:100%;max-height:100%;to
 #controls{display:none}
 .modal{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50}.box{width:88vw;padding:14px;background:#20252e;border:1px solid #697282;border-radius:12px;text-align:center}.box input{width:160px;padding:8px;background:#292e37;color:#fff;border:1px solid #687282;border-radius:8px;text-align:center}
 </style></head><body>
-<section id="menu" class="screen"><h1>迷 宫</h1><div class="sub">经典模式</div><div id="phases" class="phases"></div><button id="fogBtn" class="menuBtn">🌫️ 迷雾模式</button><button id="adminBtn" class="smallBtn">管理</button><button id="resetBtn" class="smallBtn">重置</button></section>
+<!-- 主菜单 -->
+<section id="menu" class="screen"><h1>迷 宫</h1><div class="sub">经典模式</div><div id="phases" class="phases"></div><button id="fogBtn" class="menuBtn">🌫️ 迷雾模式</button><button id="customBtn" class="menuBtn">自定义迷宫</button><button id="adminBtn" class="smallBtn">管理员模式</button><button id="resetBtn" class="smallBtn">重置进度</button></section>
+<!-- 阶段内关卡 -->
 <section id="phaseMenu" class="screen hidden"><h1 id="phaseTitle">阶段 1</h1><div id="phaseLevels" class="levels"></div><button id="phaseBack" class="menuBtn">← 返回</button></section>
+<!-- 迷雾模式菜单 -->
 <section id="fogMenu" class="screen hidden"><h1>🌫️ 迷雾模式</h1><div id="fogLevels" class="fogLevels"></div><button id="fogBack" class="menuBtn">← 返回</button></section>
+<!-- 游戏界面 -->
 <section id="game" class="screen hidden"><div id="bar"><button id="back">←</button><b id="title"></b><span id="status"></span></div>
-<div id="gameArea"><div id="mazeStage"><canvas id="cv"></canvas></div><div id="controls" style="display:none"><button data-d="0,-1">▲</button><div><button data-d="-1,0">◀</button><button id="padCenter" disabled>●</button><button data-d="1,0">▶</button></div><button data-d="0,1">▼</button></div></div></section>
+<div id="gameArea"><div id="mazeStage"><canvas id="cv"></canvas></div></div></section>
+<!-- 通关界面 -->
 <section id="complete" class="screen hidden"><h1>通关！</h1><p id="ct"></p><button id="next" class="menuBtn"></button><button id="cm" class="menuBtn">返回</button></section>
+<!-- 自定义迷宫 -->
+<section id="custom" class="screen hidden"><h1>自定义迷宫</h1><div class="sub">自适应屏幕</div><p>尺寸 <input id="cw" type="number" value="15" min="7" max="31" style="width:60px"> × <input id="ch" type="number" value="15" min="7" max="31" style="width:60px"></p><button id="gen" class="menuBtn">生成</button><button id="cb" class="menuBtn">返回</button></section>
+<!-- 弹窗 -->
 <div id="modal" class="modal hidden"><div class="box"><h2 id="mt"></h2><p id="mx"></p><input id="mi" type="password" inputmode="numeric"><br><button id="mok" class="menuBtn">确定</button><button id="mno" class="menuBtn">取消</button></div></div>
 <script>
 "use strict";
@@ -35,7 +43,7 @@ const normal=[],fog=[];
 for(let i=0;i<30;i++){let z=Math.min(15+Math.floor(i*1.5),31);if(!(z&1))z--;normal.push({type:"normal",index:i,id:`${Math.floor(i/3)+1}-${i%3+1}`,phase:Math.floor(i/3)+1,w:z,h:z,doors:i>=6,d:i+1})}
 for(let i=0;i<15;i++){let z=Math.min(17+Math.floor(i*1.2),31);if(!(z&1))z--;fog.push({type:"fog",index:i,id:`F-${i+1}`,w:z,h:z,d:i+1})}
 const $=x=>document.getElementById(x);
-const screens=[$("menu"),$("phaseMenu"),$("fogMenu"),$("game"),$("complete")];
+const screens=[$("menu"),$("phaseMenu"),$("fogMenu"),$("game"),$("complete"),$("custom")];
 function show(x){screens.forEach(s=>s.classList.add("hidden"));x.classList.remove("hidden")}
 
 // 存储适配
@@ -112,22 +120,32 @@ function gen(c){for(let i=0;i<40;i++){let m=maze(c.w,c.h);if(valid(...m))return 
 function setupDoors(c){
  st.keys=[];st.doors=[];
  if(c.type!=="normal"||!c.doors)return;
- let p=path(st.a,st.s,st.e);if(!p||p.length<15)return;
- let n=c.d>=23?2:1;n=Math.min(n,4);
+ let p=path(st.a,st.s,st.e);if(!p||p.length<20)return;
+ let n=c.index>=24?4:c.index>=18?3:c.index>=12?2:1;
  let used=new Set();
+ let wrongCells=[];
+ for(let y=1;y<st.a.length-1;y++)for(let x=1;x<st.a[0].length-1;x++)if(st.a[y][x]){
+  let onPath=p.some(pt=>pt[0]===x&&pt[1]===y);
+  if(!onPath)wrongCells.push([x,y]);
+ }
  for(let i=0;i<n;i++){
-  let kIdx=Math.floor(p.length*(.2+i*.18)),dIdx=Math.min(p.length-3,kIdx+Math.max(7,Math.floor(p.length*.12)));
-  if(dIdx<=kIdx+2)continue;
-  while(used.has(kIdx)&&kIdx<dIdx-3)kIdx++;
-  while(used.has(dIdx)&&dIdx>kIdx+3)dIdx--;
-  if(used.has(kIdx)||used.has(dIdx))continue;
-  used.add(kIdx);used.add(dIdx);
-  st.keys.push({x:p[kIdx][0],y:p[kIdx][1],got:false,i});
-  st.doors.push({x:p[dIdx][0],y:p[dIdx][1],open:false,i});
+  let dIdx=Math.floor(p.length*(.25+i*.2));
+  while(used.has(dIdx)&&dIdx<p.length-3)dIdx++;
+  if(used.has(dIdx)||dIdx>=p.length-2)continue;
+  used.add(dIdx);
+  let doorPos=p[dIdx];
+  let bestKey=null,bestDist=0;
+  for(let wc of wrongCells){
+   let dist=Math.abs(wc[0]-doorPos[0])+Math.abs(wc[1]-doorPos[1]);
+   if(dist>=8&&dist>bestDist){bestDist=dist;bestKey=wc}
+  }
+  if(!bestKey)continue;
+  st.doors.push({x:doorPos[0],y:doorPos[1],open:false,i});
+  st.keys.push({x:bestKey[0],y:bestKey[1],got:false,i});
  }
 }
 
-function start(c){st.cfg=c;let m=gen(c);st.a=m[0];st.s=m[1];st.e=m[2];st.p=[...st.s];setupDoors(c);$("title").textContent=c.type==="fog"?"🌫️ "+c.id:"关卡 "+c.id;upd();show($("game"));resize();draw()}
+function start(c){st.cfg=c;let m=gen(c);st.a=m[0];st.s=m[1];st.e=m[2];st.p=[...st.s];setupDoors(c);$("title").textContent=c.type==="fog"?"🌫️ "+c.id:c.type==="custom"?"自定义":"关卡 "+c.id;upd();show($("game"));resize();draw()}
 const cv=$("cv"),ctx=cv.getContext("2d");
 function resize(){if(!st.a)return;let stage=$("mazeStage"),w=st.a[0].length,h=st.a.length,c=Math.max(2,Math.floor(Math.min((stage.clientWidth-2)/w,(stage.clientHeight-2)/h)));cv.width=w*c;cv.height=h*c;cv.dataset.c=c}
 function vis(x,y){return st.cfg.type!=="fog"||Math.abs(x-st.p[0])+Math.abs(y-st.p[1])<=3}
@@ -150,21 +168,28 @@ function move(dx,dy){
 }
 
 document.addEventListener("keydown",e=>{if(e.repeat||st.moving)return;let d=null,k=e.key.toLowerCase();if(k==="w"||e.key==="ArrowUp")d=[0,-1];if(k==="s"||e.key==="ArrowDown")d=[0,1];if(k==="a"||e.key==="ArrowLeft")d=[-1,0];if(k==="d"||e.key==="ArrowRight")d=[1,0];if(d){e.preventDefault();move(...d)}})
-// 手表端：仅触摸滑动控制，无方向键
 let ts=null;cv.addEventListener("touchstart",e=>{let t=e.changedTouches[0];ts=[t.clientX,t.clientY]},{passive:true});cv.addEventListener("touchend",e=>{if(!ts)return;let t=e.changedTouches[0],dx=t.clientX-ts[0],dy=t.clientY-ts[1];ts=null;if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;Math.abs(dx)>Math.abs(dy)?move(dx>0?1:-1,0):move(0,dy>0?1:-1)},{passive:true})
 
 function finish(){
  let c=st.cfg;
  if(c.type==="normal"){st.normal.add(c.index);save();$("ct").textContent="完成 "+c.id+"！";$("next").textContent=c.index<29?"下一关":"返回";$("next").onclick=()=>{if(c.index<29){let next=normal[c.index+1];if(next.phase!==c.phase)showPhase(next.phase);start(next)}else{renderPhases();show($("menu"))}}}
  else if(c.type==="fog"){st.fog.add(c.index);$("ct").textContent="完成 "+c.id+"！";$("next").textContent="返回";$("next").onclick=()=>{renderFog();show($("fogMenu"))}}
+ else{$("ct").textContent="自定义迷宫通关！";$("next").textContent="再来一张";$("next").onclick=startCustom}
  show($("complete"))
 }
 function modal(title,text,cb){$("mt").textContent=title;$("mx").textContent=text;$("mi").value="";$("modal").classList.remove("hidden");$("mok").onclick=()=>{$("modal").classList.add("hidden");cb($("mi").value)};$("mno").onclick=()=>$("modal").classList.add("hidden")}
-$("adminBtn").onclick=()=>modal("管理员","请输入密码。",v=>{if(v==="235689850525"){st.admin=true;st.normal=new Set([...Array(30).keys()]);st.fog=new Set([...Array(15).keys()]);Storage.set(ADMIN_KEY,"1");save();renderPhases();renderFog()}else alert("密码错误")});
-$("resetBtn").onclick=()=>modal("确认重置","请输入 RESET。",v=>{if(v==="RESET"){st.normal.clear();st.fog.clear();st.admin=false;Storage.remove(ADMIN_KEY);Storage.remove(SAVE_KEY);save();renderPhases();renderFog();alert("已重置")}});
+$("adminBtn").onclick=()=>modal("管理员模式","请输入密码。",v=>{if(v==="235689850525"){st.admin=true;st.normal=new Set([...Array(30).keys()]);st.fog=new Set([...Array(15).keys()]);Storage.set(ADMIN_KEY,"1");save();renderPhases();renderFog()}else alert("密码错误")});
+$("resetBtn").onclick=()=>modal("确认重置","请输入 RESET 以确认。",v=>{if(v==="RESET"){st.normal.clear();st.fog.clear();st.admin=false;Storage.remove(ADMIN_KEY);Storage.remove(SAVE_KEY);save();renderPhases();renderFog();alert("进度已重置")}});
 $("fogBtn").onclick=()=>{if(all()){renderFog();show($("fogMenu"))}};$("fogBack").onclick=()=>show($("menu"));$("phaseBack").onclick=()=>show($("menu"));
-$("back").onclick=()=>{st.a=null;if(st.cfg&&st.cfg.type==="fog"){renderFog();show($("fogMenu"))}else{renderPhases();show($("menu"))}};
-$("cm").onclick=()=>{if(st.cfg&&st.cfg.type==="fog"){renderFog();show($("fogMenu"))}else{renderPhases();show($("menu"))}};
+$("back").onclick=()=>{st.a=null;if(st.cfg&&st.cfg.type==="fog"){renderFog();show($("fogMenu"))}else if(st.cfg&&st.cfg.type==="custom"){show($("custom"))}else{renderPhases();show($("menu"))}};
+$("cm").onclick=()=>{if(st.cfg&&st.cfg.type==="fog"){renderFog();show($("fogMenu"))}else if(st.cfg&&st.cfg.type==="custom"){show($("custom"))}else{renderPhases();show($("menu"))}};
+
+// 自定义迷宫 - 自适应屏幕尺寸
+function getMaxSize(){let stage=$("mazeStage"),c=Math.min(stage.clientWidth,stage.clientHeight);return Math.max(7,Math.min(31,Math.floor(c/8)*2-1))}
+function startCustom(){let max=getMaxSize();let w=Math.max(7,Math.min(max,+$("cw").value||15)),h=Math.max(7,Math.min(max,+$("ch").value||15));if(!(w&1))w--;if(!(h&1))h--;start({type:"custom",id:"自定义",w,h,d:10})}
+$("customBtn").onclick=()=>{if(all()){let max=getMaxSize();$("cw").max=max;$("ch").max=max;$("cw").value=Math.min(15,max);$("ch").value=Math.min(15,max);show($("custom"))}};
+$("gen").onclick=startCustom;$("cb").onclick=()=>show($("menu"));
+
 function refresh(){if(st.a){resize();draw()}}addEventListener("resize",refresh);addEventListener("orientationchange",()=>setTimeout(refresh,150));if(visualViewport)visualViewport.addEventListener("resize",refresh);
 load();
 </script></body></html>
