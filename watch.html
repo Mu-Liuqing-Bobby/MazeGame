@@ -122,8 +122,8 @@ function setupDoors(c){
  if(c.type!=="normal"||!c.doors)return;
  let p=path(st.a,st.s,st.e);if(!p||p.length<25)return;
  
- // 确定门数量
- let n=c.index>=24?4:c.index>=18?3:c.index>=12?2:1;
+ // 固定数量：始终2把钥匙2扇门
+ let n=2;
  
  // 获取所有非正确路线的可通行格子
  let wrongCells=[];
