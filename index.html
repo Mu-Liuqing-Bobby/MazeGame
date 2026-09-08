@@ -57,78 +57,135 @@ function gen(c){for(let i=0;i<40;i++){let m=maze(c.w,c.h);if(valid(...m))return 
 function setupDoors(c){
  st.keys=[];st.doors=[];
  if(c.type!=="normal"||!c.doors)return;
- let p=path(st.a,st.s,st.e);if(!p||p.length<20)return;
- // 确定门数量：6-11关1个，12-17关2个，18-23关3个，24+关4个
+ let p=path(st.a,st.s,st.e);if(!p||p.length<25)return;
+ 
+ // 确定门数量
  let n=c.index>=24?4:c.index>=18?3:c.index>=12?2:1;
- let used=new Set();
- // 获取所有非正确路线的可通行格子（死胡同和岔路）
+ 
+ // 获取所有非正确路线的可通行格子
  let wrongCells=[];
  for(let y=1;y<st.a.length-1;y++)for(let x=1;x<st.a[0].length-1;x++)if(st.a[y][x]){
   let onPath=p.some(pt=>pt[0]===x&&pt[1]===y);
   if(!onPath)wrongCells.push([x,y]);
  }
- // 如果没有足够的错误路线格子，减少门数量
- if(wrongCells.length<n){n=Math.max(1,Math.floor(wrongCells.length/2))}
- for(let i=0;i<n;i++){
-  // 门在正确路线上，确保起点能到达门（不经过其他未开锁的门）
-  let dIdx=Math.floor(p.length*(.3+i*.15));
-  while(used.has(dIdx)&&dIdx<p.length-3)dIdx++;
-  if(used.has(dIdx)||dIdx>=p.length-2)continue;
-  used.add(dIdx);
-  let doorPos=p[dIdx];
-  // 钥匙在错误路线上，远离门（距离>=5），优先选死胡同
-  let bestKey=null,bestDist=0;
-  // 先找死胡同（只有一个邻居的格子）
-  let deadEnds=wrongCells.filter(([x,y])=>{
-   let neighbors=(st.a[y-1][x]?1:0)+(st.a[y+1][x]?1:0)+(st.a[y][x-1]?1:0)+(st.a[y][x+1]?1:0);
-   return neighbors===1;
-  });
-  let candidates=deadEnds.length>=n?deadEnds:wrongCells;
-  for(let wc of candidates){
-   let dist=Math.abs(wc[0]-doorPos[0])+Math.abs(wc[1]-doorPos[1]);
-   if(dist>=5&&dist>bestDist){bestDist=dist;bestKey=wc}
-  }
-  // 如果距离>=5找不到，放宽到>=3
-  if(!bestKey){
-   for(let wc of candidates){
-    let dist=Math.abs(wc[0]-doorPos[0])+Math.abs(wc[1]-doorPos[1]);
-    if(dist>=3&&dist>bestDist){bestDist=dist;bestKey=wc}
-   }
-  }
-  // 再不行就选最远的
-  if(!bestKey&&candidates.length>0){
-   for(let wc of candidates){
-    let dist=Math.abs(wc[0]-doorPos[0])+Math.abs(wc[1]-doorPos[1]);
-    if(dist>bestDist){bestDist=dist;bestKey=wc}
-   }
-  }
-  if(!bestKey)continue;
-  // 确保钥匙位置可达（从起点不经过门就能到达）
-  st.doors.push({x:doorPos[0],y:doorPos[1],open:false,i});
-  st.keys.push({x:bestKey[0],y:bestKey[1],got:false,i});
+ 
+ // 获取死胡同（只有一个邻居的格子）
+ let deadEnds=wrongCells.filter(([x,y])=>{
+  let neighbors=(st.a[y-1][x]?1:0)+(st.a[y+1][x]?1:0)+(st.a[y][x-1]?1:0)+(st.a[y][x+1]?1:0);
+  return neighbors===1;
+ });
+ 
+ // 如果没有足够的错误路线，减少门数量
+ let minKeysNeeded=n;
+ let availableKeys=deadEnds.length>0?deadEnds:wrongCells;
+ if(availableKeys.length<minKeysNeeded){
+  n=Math.max(1,Math.floor(availableKeys.length/2)+1);
  }
- // 验证：确保从起点可以到达所有钥匙（不经过门）
+ 
+ // 将正确路线分成 n+1 段，每段之间放一扇门
+ // 钥匙放在前一段的岔路/死胡同里
+ let doorsPlaced=0;
+ let usedKeyPos=new Set();
+ let usedDoorIdx=new Set();
+ 
+ for(let i=0;i<n;i++){
+  // 计算这一段的范围
+  let segStart=Math.floor(p.length*(i/(n+1)));
+  let segEnd=Math.floor(p.length*((i+1)/(n+1)));
+  let nextSegEnd=Math.floor(p.length*((i+2)/(n+1)));
+  
+  // 门放在当前段末尾附近（但不在最后一段的终点）
+  let dIdx=Math.min(segEnd+Math.floor((nextSegEnd-segEnd)*0.3),p.length-2);
+  while(usedDoorIdx.has(dIdx)&&dIdx<p.length-2)dIdx++;
+  if(dIdx>=p.length-2)continue;
+  usedDoorIdx.add(dIdx);
+  let doorPos=p[dIdx];
+  
+  // 钥匙放在当前段起点到门之间的岔路里
+  // 这样玩家必须先在这段里探索找到钥匙，才能过门
+  let keyZoneStart=Math.max(0,segStart);
+  let keyZoneEnd=Math.max(keyZoneStart+1,dIdx-2);
+  
+  // 找钥匙位置：在错误路线上，且从起点可达（不经过任何门）
+  let bestKey=null,bestScore=-1;
+  
+  // 优先在死胡同里找
+  let candidates=deadEnds.length>=n-i?deadEnds:wrongCells;
+  
+  for(let wc of candidates){
+   let kKey=wc[0]+","+wc[1];
+   if(usedKeyPos.has(kKey))continue;
+   
+   // 计算钥匙到门的距离
+   let distToDoor=Math.abs(wc[0]-doorPos[0])+Math.abs(wc[1]-doorPos[1]);
+   
+   // 钥匙不能太近门（否则一眼看出），也不能太远
+   if(distToDoor<3||distToDoor>Math.min(p.length/2,20))continue;
+   
+   // 检查钥匙是否从起点可达（不经过任何已放置的门）
+   if(!isReachableWithoutDoors(wc[0],wc[1],doorsPlaced))continue;
+   
+   // 评分：距离门适中（5-12最佳），死胡同加分
+   let isDeadEnd=deadEnds.some(de=>de[0]===wc[0]&&de[1]===wc[1]);
+   let score=isDeadEnd?10:0;
+   score+=Math.max(0,12-Math.abs(distToDoor-8)); // 距离8最优
+   
+   if(score>bestScore){
+    bestScore=score;
+    bestKey=wc;
+   }
+  }
+  
+  if(!bestKey)continue;
+  
+  usedKeyPos.add(bestKey[0]+","+bestKey[1]);
+  st.doors.push({x:doorPos[0],y:doorPos[1],open:false,i:doorsPlaced});
+  st.keys.push({x:bestKey[0],y:bestKey[1],got:false,i:doorsPlaced});
+  doorsPlaced++;
+ }
+ 
+ // 最后验证：确保所有钥匙可达
  validateKeyAccess();
 }
 
-// 验证钥匙可达性，如果某把钥匙不可达，移除该钥匙和对应的门
+// 检查某个位置是否从起点可达（不经过任何已放置的锁着的门）
+function isReachableWithoutDoors(tx,ty,maxDoorIndex){
+ let q=[st.s],K=(x,y)=>x+","+y,seen=new Set();
+ seen.add(K(...st.s));
+ while(q.length){
+  let [x,y]=q.shift();
+  if(x===tx&&y===ty)return true;
+  for(let [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+   let X=x+dx,Y=y+dy;
+   if(Y>=0&&Y<st.a.length&&X>=0&&X<st.a[0].length&&st.a[Y][X]&&!seen.has(K(X,Y))){
+    // 检查是否是锁着的门（只检查已放置的门）
+    let isLockedDoor=false;
+    for(let di=0;di<maxDoorIndex;di++){
+     let d=st.doors[di];
+     if(d&&d.x===X&&d.y===Y&&!d.open){isLockedDoor=true;break}
+    }
+    if(!isLockedDoor){seen.add(K(X,Y));q.push([X,Y])}
+   }
+  }
+ }
+ return false;
+}
+
+// 验证钥匙可达性
 function validateKeyAccess(){
  if(st.keys.length===0)return;
- let accessible=new Set();
- let q=[st.s],K=(x,y)=>x+","+y;
+ let q=[st.s],K=(x,y)=>x+","+y,accessible=new Set();
  accessible.add(K(...st.s));
  while(q.length){
   let [x,y]=q.shift();
   for(let [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
    let X=x+dx,Y=y+dy;
    if(Y>=0&&Y<st.a.length&&X>=0&&X<st.a[0].length&&st.a[Y][X]&&!accessible.has(K(X,Y))){
-    // 检查是否是锁着的门
     let isLockedDoor=st.doors.some(d=>d.x===X&&d.y===Y&&!d.open);
     if(!isLockedDoor){accessible.add(K(X,Y));q.push([X,Y])}
    }
   }
  }
- // 移除不可达的钥匙和门
  let validKeys=[],validDoors=[];
  for(let i=0;i<st.keys.length;i++){
   let k=st.keys[i];
